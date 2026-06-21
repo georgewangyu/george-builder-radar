@@ -1,0 +1,14 @@
+{
+  "name": "george-builder-radar-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "create": "node create-daily-feed.js",
+    "validate": "node validate-feed.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+
