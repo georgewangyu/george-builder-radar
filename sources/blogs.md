@@ -7,5 +7,3 @@
 - Cursor Blog
 - Vercel AI SDK
 - LangChain
-- Browserbase
-
