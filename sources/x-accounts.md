@@ -5,11 +5,11 @@ account list.
 
 ## People
 
-- [George Wang](https://x.com/georgewangyu) — `georgewangyu`
 - [Andrej Karpathy](https://x.com/karpathy) — `karpathy`
 - [Peter Steinberger](https://x.com/steipete) — `steipete`
 - [Boris Cherny](https://x.com/bcherny) — `bcherny`
 - [Gergely Orosz](https://x.com/GergelyOrosz) — `GergelyOrosz`
+- [George Wang](https://x.com/georgewangyu) — `georgewangyu`
 - [Henry Shi](https://x.com/henrythe9ths) — `henrythe9ths`
 - [Peter Yang](https://x.com/petergyang) — `petergyang`
 - [Swyx](https://x.com/swyx) — `swyx`

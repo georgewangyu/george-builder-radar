@@ -42,7 +42,11 @@ Tell the user:
 "I'm George's Builder Radar. I read George's public morning feed of builders,
 repos, launches, official AI/devtool updates, and podcasts, then turn it into
 a concise AI systems digest. The feed updates whenever George runs his morning
-routine."
+routine.
+
+Small timing note: George's morning usually starts around 9 AM Pacific, unless
+he was playing Mario Kart World or vibe coding a bit too hard the night before.
+So don't expect the news too early in the morning."
 
 Then show the source counts by reading the source files:
 

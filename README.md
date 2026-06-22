@@ -10,6 +10,10 @@ or deliver.
 It updates whenever George runs his morning routine. Private health, calendar,
 journal, email, and raw planning context stay out.
 
+Timing note: George's morning usually starts around 9 AM Pacific, unless he was
+playing Mario Kart World or vibe coding a bit too hard the night before. Do
+not expect this feed to beat the opening bell.
+
 ## What You Get
 
 A daily or weekly digest, delivered in chat or to your preferred channel, with:
@@ -138,11 +142,11 @@ or more action-oriented. It can copy prompts into
 ### X Accounts
 
 People:
-[George Wang](https://x.com/georgewangyu),
 [Andrej Karpathy](https://x.com/karpathy),
 [Peter Steinberger](https://x.com/steipete),
 [Boris Cherny](https://x.com/bcherny),
 [Gergely Orosz](https://x.com/GergelyOrosz),
+[George Wang](https://x.com/georgewangyu),
 [Henry Shi](https://x.com/henrythe9ths),
 [Peter Yang](https://x.com/petergyang),
 [Swyx](https://x.com/swyx),
