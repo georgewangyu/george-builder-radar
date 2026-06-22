@@ -23,16 +23,46 @@ A daily or weekly digest, delivered in chat or to your preferred channel, with:
 
 ## Quick Start
 
-Install the skill:
+Pick your agent and run the install command, then ask the agent to set it up.
+
+### OpenClaw
+
+```bash
+git clone https://github.com/georgewangyu/george-builder-radar.git ~/skills/george-builder-radar
+```
+
+```text
+set up George's Builder Radar
+```
+
+### Claude Code
+
+```bash
+mkdir -p ~/.claude/skills && git clone https://github.com/georgewangyu/george-builder-radar.git ~/.claude/skills/george-builder-radar
+```
+
+```text
+set up George's Builder Radar
+```
+
+### Codex
 
 ```bash
 mkdir -p ~/.codex/skills && git clone https://github.com/georgewangyu/george-builder-radar.git ~/.codex/skills/george-builder-radar
 ```
 
-Then tell your agent:
-
 ```text
 set up George's Builder Radar
+```
+
+### Cursor / Other Agents
+
+```bash
+git clone https://github.com/georgewangyu/george-builder-radar.git ~/skills/george-builder-radar
+```
+
+```text
+Use ~/skills/george-builder-radar/SKILL.md and set up George's Builder Radar.
 ```
 
 The agent walks you through:
@@ -45,6 +75,10 @@ The agent walks you through:
 No X, GitHub, Product Hunt, YC, blog, or podcast API keys are required from
 users. The public feed is already generated centrally. Users only need delivery
 credentials if they choose Telegram or email outside OpenClaw.
+
+Node.js 20+ is only needed for scheduled non-OpenClaw Telegram/email delivery
+through the included scripts. Chat-only use does not require installing npm
+packages.
 
 ## Delivery Options
 
