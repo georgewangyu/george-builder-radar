@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "User configuration for George's Builder Radar. Stored at ~/.george-builder-radar/config.json",
+  "type": "object",
+  "properties": {
+    "platform": {
+      "type": "string",
+      "enum": ["openclaw", "other"],
+      "description": "Detected platform: openclaw or other"
+    },
+    "language": {
+      "type": "string",
+      "enum": ["en", "zh", "bilingual"],
+      "default": "en",
+      "description": "Digest language"
+    },
+    "tone": {
+      "type": "string",
+      "enum": ["concise", "operator", "technical"],
+      "default": "operator",
+      "description": "Preferred digest tone"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "America/Los_Angeles",
+      "description": "IANA timezone for scheduling"
+    },
+    "frequency": {
+      "type": "string",
+      "enum": ["daily", "weekly"],
+      "default": "daily",
+      "description": "Digest frequency"
+    },
+    "deliveryTime": {
+      "type": "string",
+      "default": "08:00",
+      "description": "Time of day in HH:MM format"
+    },
+    "weeklyDay": {
+      "type": "string",
+      "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+      "default": "monday",
+      "description": "Weekly delivery day"
+    },
+    "delivery": {
+      "type": "object",
+      "description": "Digest delivery settings",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["stdout", "telegram", "email"],
+          "default": "stdout",
+          "description": "Delivery method for non-OpenClaw use"
+        },
+        "chatId": {
+          "type": "string",
+          "description": "Telegram chat ID"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address"
+        }
+      }
+    },
+    "onboardingComplete": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether first-run setup is complete"
+    }
+  }
+}

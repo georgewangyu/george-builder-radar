@@ -1,9 +1,9 @@
 # Blogs
 
-- Anthropic Engineering
-- Claude Blog
-- OpenAI News / Developers
-- GitHub Blog / Copilot
-- Cursor Blog
-- Vercel AI SDK
-- LangChain
+- [Anthropic Engineering](https://www.anthropic.com/engineering)
+- [Claude Blog](https://claude.com/blog)
+- [OpenAI News / Developers](https://openai.com/news/)
+- [GitHub Blog / Copilot](https://github.blog/)
+- [Cursor Blog](https://cursor.com/blog)
+- [Vercel AI SDK](https://vercel.com/blog)
+- [LangChain Blog](https://blog.langchain.com/)

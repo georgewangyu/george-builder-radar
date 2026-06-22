@@ -1,6 +1,7 @@
 # Launch Sources
 
-- Product Hunt
-- Launch YC
-- Hacker News: Show HN, Launch HN, and relevant agent/devtool threads
-
+- [Product Hunt](https://www.producthunt.com/)
+- [Launch YC](https://www.ycombinator.com/launches)
+- [Hacker News Launches](https://news.ycombinator.com/launches)
+- [Hacker News Show HN](https://news.ycombinator.com/show)
+- Hacker News relevant agent/devtool threads

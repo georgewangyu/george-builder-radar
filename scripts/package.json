@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "create": "node create-daily-feed.js",
+    "latest": "node prepare-latest-feed.js",
+    "deliver": "node deliver.js",
     "validate": "node validate-feed.js"
   },
   "engines": {
     "node": ">=20"
   }
 }
-
