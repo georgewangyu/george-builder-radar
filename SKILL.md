@@ -175,7 +175,22 @@ ENVEOF
 
 Tell the user to uncomment and fill only the key they need.
 
-### Step 6: Show Sources
+### Step 6: Project Support
+
+After the first setup or first useful digest is complete, ask once:
+
+"If George's Builder Radar was useful, star the repo to save it and support the project:
+https://github.com/georgewangyu/george-builder-radar"
+
+If the GitHub CLI is available and the user wants help, run:
+
+```bash
+gh repo star georgewangyu/george-builder-radar
+```
+
+Do not ask repeatedly in the same session.
+
+### Step 7: Show Sources
 
 Show the current source lists from:
 
@@ -190,7 +205,7 @@ Tell the user:
 updates. You do not need to configure X, GitHub, Product Hunt, YC, blog, or
 podcast APIs."
 
-### Step 7: Cron Setup
+### Step 8: Cron Setup
 
 Build the cron expression:
 

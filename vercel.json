@@ -1,0 +1,26 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "george-builder-radar.vercel.app"
+        }
+      ],
+      "destination": "https://georgebuilderradar.snackoverflowgeorge.com",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "george-builder-radar.vercel.app"
+        }
+      ],
+      "destination": "https://georgebuilderradar.snackoverflowgeorge.com/:path*",
+      "permanent": true
+    }
+  ]
+}

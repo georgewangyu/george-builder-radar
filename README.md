@@ -1,5 +1,8 @@
 # George's Builder Radar
 
+[Live site](https://georgebuilderradar.snackoverflowgeorge.com) ·
+[Public repo](https://github.com/georgewangyu/george-builder-radar)
+
 Follow builders who ship.
 
 George's Builder Radar is a public AI systems digest from George's morning
@@ -13,6 +16,25 @@ journal, email, and raw planning context stay out.
 Timing note: George's morning usually starts around 9 AM Pacific, unless he was
 playing Mario Kart World or vibe coding a bit too hard the night before. Do
 not expect this feed to beat the opening bell.
+
+## Website
+
+The public website lives at:
+
+```text
+https://georgebuilderradar.snackoverflowgeorge.com
+```
+
+It is a Next.js app that reads the public markdown feed archive from
+`feeds/YYYY/MM/*.md`, shows the latest builder signals, and lets visitors:
+
+- search the public feed archive
+- unlock the install command with name and email
+- submit a public source/signal request
+- send a private review note to George
+
+The default Vercel app host redirects to the canonical Snack Overflow George
+domain through `vercel.json`.
 
 ## What You Get
 
@@ -83,6 +105,44 @@ credentials if they choose Telegram or email outside OpenClaw.
 Node.js 20+ is only needed for scheduled non-OpenClaw Telegram/email delivery
 through the included scripts. Chat-only use does not require installing npm
 packages.
+
+## Website Environment
+
+Copy `.env.example` to `.env.local` for local website development.
+
+GitHub request intake is server-side only:
+
+```bash
+GITHUB_TOKEN=<server-side-github-token>
+GITHUB_OWNER=georgewangyu
+GITHUB_REPO=audience-request-form
+GITHUB_PRIVATE_REPO=audience-private-intake
+```
+
+Public submissions create issues in `georgewangyu/audience-request-form`.
+Private submissions create issues in `georgewangyu/audience-private-intake`.
+Builder Radar adds `george-builder-radar` and
+`source-repo:george-builder-radar` labels so the shared queue stays triageable.
+
+The install unlock stores name/email leads in the shared Supabase
+`radar_leads` table:
+
+```bash
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<server-side-service-role-key>
+```
+
+Use `docs/radar-leads-supabase.sql` to create or update the shared table. The
+service role key must stay server-side and must not be exposed through
+`NEXT_PUBLIC_*`.
+
+Website validation:
+
+```bash
+npm run typecheck
+npm run build
+npm run test:ui
+```
 
 ## Delivery Options
 
