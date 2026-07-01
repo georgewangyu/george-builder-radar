@@ -1,6 +1,14 @@
 ---
 name: george-builder-radar
 description: George's Builder Radar digest — reads George's public builder feed and delivers a concise AI systems digest. Use when the user asks for George's Builder Radar, builder radar, AI systems digest, or /george-builder-radar.
+memory_tags:
+  - domain:builder-radar
+  - workflow:builder-digest
+  - skill_role:researcher
+  - repo_boundary:tools
+  - inputs:public-feed
+  - outputs:digest
+  - risk:low
 ---
 
 # George's Builder Radar
