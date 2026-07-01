@@ -47,8 +47,19 @@ function firstLineFor(markdown: string, prefix: string) {
 }
 
 function section(markdown: string, heading: string) {
-  const pattern = new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=^## |$)`, "m");
-  return markdown.match(pattern)?.[1]?.trim() || "";
+  const lines = markdown.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim() === `## ${heading}`);
+
+  if (start === -1) return "";
+
+  const sectionLines: string[] = [];
+
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith("## ")) break;
+    sectionLines.push(line);
+  }
+
+  return sectionLines.join("\n").trim();
 }
 
 function bulletBlocks(sectionText: string) {
@@ -106,7 +117,10 @@ function feedPaths() {
   if (!existsSync(feedsRoot)) return [];
 
   return readdirSync(feedsRoot, { recursive: true, encoding: "utf8" })
-    .filter((entry): entry is string => entry.endsWith(".md"))
+    .filter(
+      (entry): entry is string =>
+        /^\d{4}\/\d{2}\/\d{4}-\d{2}-\d{2}\.md$/.test(entry),
+    )
     .map((entry) => path.join(feedsRoot, entry))
     .sort();
 }
@@ -155,6 +169,10 @@ export const feeds = feedPaths()
   }));
 
 export const latestFeed = feeds[0];
+
+export function feedById(id: string) {
+  return feeds.find((feed) => feed.id === id);
+}
 
 export const allSources = Array.from(
   new Set(

@@ -20,6 +20,11 @@ test.describe("George's Builder Radar", () => {
     await expect(page).toHaveTitle("George's Builder Radar");
     await expect(page.getByRole("heading", { name: "George's Builder Radar", level: 1 })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Top signals", level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "2026-06-30", level: 2 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open feed" })).toHaveAttribute(
+      "href",
+      "/feeds/2026-06-30",
+    );
     await expect(page.getByText("Use George's Builder Radar in your agent.")).toBeVisible();
     await expect(page.getByText("npx skills add georgewangyu/george-builder-radar")).toBeHidden();
 
@@ -59,7 +64,13 @@ test.describe("George's Builder Radar", () => {
     await page.goto("/");
 
     await page.getByPlaceholder("Search memory, MCP, agents, launch patterns...").fill("memory");
-    await expect(page.getByText(feeds[0].date).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: new RegExp(feeds[0].date) })).toBeVisible();
+    await page.getByRole("link", { name: new RegExp(feeds[0].date) }).click();
+    await expect(page).toHaveURL(/\/feeds\/2026-06-30$/);
+    await expect(page.getByRole("heading", { name: "What moved today" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Repos worth studying" })).toBeVisible();
+
+    await page.goto("/");
 
     await page.getByPlaceholder("Short title").fill("Agent memory note");
     await page
@@ -85,6 +96,18 @@ test.describe("George's Builder Radar", () => {
     }));
 
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth);
-    await expect(page.getByRole("link", { name: "Skill" })).toBeVisible();
+    await expect(page.getByRole("navigation").getByRole("link", { name: "Skill", exact: true })).toBeVisible();
+  });
+
+  test("feed detail pages render source-backed sections", async ({ page }) => {
+    await page.goto("/feeds/2026-06-30");
+
+    await expect(page).toHaveTitle("2026-06-30 - George's Builder Radar");
+    await expect(page.getByRole("heading", { name: "2026-06-30", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What moved today" })).toBeVisible();
+    await expect(page.getByText("Agent systems are becoming operational products")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Repos worth studying" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "`usestrix/strix`" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Original links" })).toBeVisible();
   });
 });

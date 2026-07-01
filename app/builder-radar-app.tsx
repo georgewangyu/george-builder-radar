@@ -326,10 +326,10 @@ export function BuilderRadarApp({ feeds }: Props) {
           </div>
           <div className="top-five-list">
             {selectedFeed.signals.slice(0, 5).map((signal, index) => (
-              <button
+              <a
                 className="top-five-row is-active"
+                href={signal.source || `/feeds/${selectedFeed.id}`}
                 key={`${selectedFeed.id}-${signal.title}`}
-                type="button"
               >
                 <span className="rank">{index + 1}</span>
                 <span className="thumb-cell" aria-hidden="true">
@@ -339,7 +339,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                   <strong>{signal.title}</strong>
                   <small>{signal.why}</small>
                 </span>
-              </button>
+              </a>
             ))}
           </div>
         </section>
@@ -386,6 +386,10 @@ export function BuilderRadarApp({ feeds }: Props) {
           <a className="icon-button" href="#submit">
             <SendIcon />
             <span>Send a signal</span>
+          </a>
+          <a className="icon-button" href={`/feeds/${selectedFeed.id}`}>
+            <SearchIcon />
+            <span>Open feed</span>
           </a>
         </div>
       </section>
@@ -472,12 +476,10 @@ export function BuilderRadarApp({ feeds }: Props) {
 
         <div className="archive-table" role="list">
           {sortedFeeds.map((feed) => (
-            <button
+            <a
               className="archive-row"
+              href={`/feeds/${feed.id}`}
               key={feed.id}
-              onClick={() => setSelectedId(feed.id)}
-              role="listitem"
-              type="button"
             >
               <span className="rank mini">{feed.date.slice(8)}</span>
               <span className="archive-main">
@@ -486,7 +488,7 @@ export function BuilderRadarApp({ feeds }: Props) {
               </span>
               <span className="archive-chip">{feed.status}</span>
               <span className="heat">{feed.signals.length} signals</span>
-            </button>
+            </a>
           ))}
         </div>
       </section>
