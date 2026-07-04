@@ -46,6 +46,7 @@ const skillInstallCommand =
   "npx skills add georgewangyu/george-builder-radar --skill george-builder-radar -g";
 const skillRepoUrl = "https://github.com/georgewangyu/george-builder-radar";
 const leadStorageKey = "george-builder-radar-install-unlocked";
+const pageSize = 12;
 
 function SearchIcon() {
   return (
@@ -137,6 +138,7 @@ export function BuilderRadarApp({ feeds }: Props) {
   const [leadStatus, setLeadStatus] = useState<FormStatus>("idle");
   const [leadUnlocked, setLeadUnlocked] = useState(false);
   const [leadError, setLeadError] = useState("");
+  const [page, setPage] = useState(1);
 
   const selectedFeed =
     feeds.find((feed) => feed.id === selectedId) || latestFeed || feeds[0];
@@ -166,10 +168,19 @@ export function BuilderRadarApp({ feeds }: Props) {
     () => sortFeeds(filteredFeeds, sortMode),
     [filteredFeeds, sortMode],
   );
+  const pageCount = Math.max(1, Math.ceil(sortedFeeds.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageEnd = Math.min(pageStart + pageSize, sortedFeeds.length);
+  const visibleFeeds = sortedFeeds.slice(pageStart, pageEnd);
 
   useEffect(() => {
     setLeadUnlocked(window.localStorage.getItem(leadStorageKey) === "true");
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, sortMode]);
 
   function flash(nextNotice: Notice) {
     setNotice(nextNotice);
@@ -474,8 +485,15 @@ export function BuilderRadarApp({ feeds }: Props) {
           </label>
         </div>
 
+        <div className="archive-meta">
+          <span>
+            {sortedFeeds.length} matching feeds
+            {sortedFeeds.length > 0 ? ` / showing ${pageStart + 1}-${pageEnd}` : ""}
+          </span>
+        </div>
+
         <div className="archive-table" role="list">
-          {sortedFeeds.map((feed) => (
+          {visibleFeeds.map((feed) => (
             <a
               className="archive-row"
               href={`/feeds/${feed.id}`}
@@ -491,6 +509,29 @@ export function BuilderRadarApp({ feeds }: Props) {
             </a>
           ))}
         </div>
+        {sortedFeeds.length > pageSize ? (
+          <nav className="pagination" aria-label="Builder feed pagination">
+            <button
+              className="page-button"
+              disabled={currentPage === 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              type="button"
+            >
+              Previous
+            </button>
+            <span className="page-status">
+              Page {currentPage} of {pageCount}
+            </span>
+            <button
+              className="page-button"
+              disabled={currentPage === pageCount}
+              onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+              type="button"
+            >
+              Next
+            </button>
+          </nav>
+        ) : null}
       </section>
 
       <section className="submit-section" id="submit" aria-labelledby="submit-title">

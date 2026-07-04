@@ -668,6 +668,14 @@ blockquote {
   margin-top: 18px;
 }
 
+.archive-meta {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .archive-row {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) auto auto;
@@ -690,6 +698,36 @@ blockquote {
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 900;
+  text-transform: uppercase;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.page-button {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.page-status {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 800;
   text-transform: uppercase;
 }
 

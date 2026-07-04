@@ -5,6 +5,8 @@
 
 Follow builders who ship.
 
+Design contract: [DESIGN.md](DESIGN.md)
+
 George's Builder Radar is a public AI systems digest from George's morning
 routine. It tracks builders, repos, launches, official AI/devtool updates, and
 podcasts, then publishes a polished markdown feed that your agent can summarize
@@ -143,6 +145,14 @@ npm run typecheck
 npm run build
 npm run test:ui
 ```
+
+## Try The Main Flow
+
+1. Open the latest feed.
+2. Search or filter the public builder-signal archive.
+3. Open a feed detail page.
+4. Submit a public signal request or private review note.
+5. Unlock the install command and ask the skill for a daily or weekly digest.
 
 ## Delivery Options
 

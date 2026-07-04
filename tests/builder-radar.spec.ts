@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { feeds } from "../lib/builder-feeds";
 
+const archivePageSize = 12;
+
 test.describe("George's Builder Radar", () => {
   test("catalog renders and lead unlock reveals the install command", async ({ page, context }) => {
     const payloads: Array<Record<string, unknown>> = [];
@@ -20,10 +22,10 @@ test.describe("George's Builder Radar", () => {
     await expect(page).toHaveTitle("George's Builder Radar");
     await expect(page.getByRole("heading", { name: "George's Builder Radar", level: 1 })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Top signals", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "2026-06-30", level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: feeds[0].date, level: 2 })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open feed" })).toHaveAttribute(
       "href",
-      "/feeds/2026-06-30",
+      `/feeds/${feeds[0].id}`,
     );
     await expect(page.getByText("Use George's Builder Radar in your agent.")).toBeVisible();
     await expect(page.getByText("npx skills add georgewangyu/george-builder-radar")).toBeHidden();
@@ -66,7 +68,7 @@ test.describe("George's Builder Radar", () => {
     await page.getByPlaceholder("Search memory, MCP, agents, launch patterns...").fill("memory");
     await expect(page.getByRole("link", { name: new RegExp(feeds[0].date) })).toBeVisible();
     await page.getByRole("link", { name: new RegExp(feeds[0].date) }).click();
-    await expect(page).toHaveURL(/\/feeds\/2026-06-30$/);
+    await expect(page).toHaveURL(new RegExp(`/feeds/${feeds[0].id}$`));
     await expect(page.getByRole("heading", { name: "What moved today" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Repos worth studying" })).toBeVisible();
 
@@ -84,6 +86,25 @@ test.describe("George's Builder Radar", () => {
     });
 
     await expect(page.getByText("Signal sent for review.")).toBeVisible();
+  });
+
+  test("archive pagination moves through feeds and resets for search", async ({ page }) => {
+    const secondPageEnd = Math.min(archivePageSize * 2, feeds.length);
+
+    await page.goto("/");
+
+    await expect(page.getByText(`Page 1 of ${Math.ceil(feeds.length / archivePageSize)}`)).toBeVisible();
+    await expect(page.getByText(`showing 1-${archivePageSize}`)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Previous", exact: true })).toBeDisabled();
+
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByText("Page 2 of")).toBeVisible();
+    await expect(page.getByText(`showing ${archivePageSize + 1}-${secondPageEnd}`)).toBeVisible();
+
+    await page.getByPlaceholder("Search memory, MCP, agents, launch patterns...").fill(feeds[0].date);
+    await expect(page.getByRole("link", { name: new RegExp(feeds[0].date) })).toBeVisible();
+    await expect(page.getByText("Page 1 of")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Next", exact: true })).toHaveCount(0);
   });
 
   test("mobile layout has no horizontal overflow", async ({ page }) => {
