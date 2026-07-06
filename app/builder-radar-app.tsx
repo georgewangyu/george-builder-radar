@@ -1,15 +1,19 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { BrandMark } from "./brand-mark";
 import type { BuilderFeed } from "@/lib/builder-feeds";
+import { displaySourceLabel, firstUrl } from "@/lib/source-links";
 
 type Props = {
   feeds: BuilderFeed[];
 };
 
 type SortMode = "latest" | "signals" | "title";
-type Notice = "idle" | "copied" | "subscribed" | "submitted";
+type Notice = "idle" | "copied" | "submitted";
 type FormStatus = "idle" | "submitting" | "success" | "error";
+type DesignVariant = "compact" | "proof" | "editorial";
+type LaneFilter = "latest" | "repos" | "launches" | "x";
 
 type ErrorResponse = {
   error?: string;
@@ -26,6 +30,13 @@ const sortOptions: Array<[SortMode, string]> = [
   ["latest", "Newest"],
   ["signals", "Most signals"],
   ["title", "A-Z"],
+];
+
+const laneFilters: Array<[LaneFilter, string]> = [
+  ["latest", "Latest"],
+  ["repos", "Repos"],
+  ["launches", "Launches"],
+  ["x", "X notes"],
 ];
 
 const issueLabels: Record<string, string> = {
@@ -47,6 +58,19 @@ const skillInstallCommand =
 const skillRepoUrl = "https://github.com/georgewangyu/george-builder-radar";
 const leadStorageKey = "george-builder-radar-install-unlocked";
 const pageSize = 12;
+
+function LinkedItemTitle({ title, source }: { title: string; source: string }) {
+  const href = firstUrl(title, source);
+  const label = href && title === href ? displaySourceLabel(href) : title;
+
+  if (!href) return <strong>{label}</strong>;
+
+  return (
+    <a className="inline-source-link" href={href}>
+      {label}
+    </a>
+  );
+}
 
 function SearchIcon() {
   return (
@@ -127,9 +151,11 @@ async function leadErrorMessageFor(response: Response) {
 
 export function BuilderRadarApp({ feeds }: Props) {
   const latestFeed = feeds[0];
+  const [designVariant, setDesignVariant] = useState<DesignVariant>("compact");
   const [selectedId, setSelectedId] = useState(latestFeed?.id || feeds[0]?.id);
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("latest");
+  const [laneFilter, setLaneFilter] = useState<LaneFilter>("latest");
   const [submissionType, setSubmissionType] = useState("submit-signal");
   const [formStatus, setFormStatus] = useState<FormStatus>("idle");
   const [error, setError] = useState("");
@@ -147,6 +173,12 @@ export function BuilderRadarApp({ feeds }: Props) {
     const normalizedQuery = query.trim().toLowerCase();
 
     return feeds.filter((feed) => {
+      const laneMatches =
+        laneFilter === "latest" ||
+        (laneFilter === "repos" && feed.repos.length > 0) ||
+        (laneFilter === "launches" && feed.launches.length > 0) ||
+        (laneFilter === "x" && feed.xNotes.length > 0);
+
       const haystack = [
         feed.title,
         feed.date,
@@ -160,9 +192,9 @@ export function BuilderRadarApp({ feeds }: Props) {
         .join(" ")
         .toLowerCase();
 
-      return !normalizedQuery || haystack.includes(normalizedQuery);
+      return laneMatches && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
-  }, [feeds, query]);
+  }, [feeds, laneFilter, query]);
 
   const sortedFeeds = useMemo(
     () => sortFeeds(filteredFeeds, sortMode),
@@ -176,11 +208,16 @@ export function BuilderRadarApp({ feeds }: Props) {
 
   useEffect(() => {
     setLeadUnlocked(window.localStorage.getItem(leadStorageKey) === "true");
+
+    const design = new URLSearchParams(window.location.search).get("design");
+    if (design === "proof" || design === "editorial") {
+      setDesignVariant(design);
+    }
   }, []);
 
   useEffect(() => {
     setPage(1);
-  }, [query, sortMode]);
+  }, [laneFilter, query, sortMode]);
 
   function flash(nextNotice: Notice) {
     setNotice(nextNotice);
@@ -188,20 +225,14 @@ export function BuilderRadarApp({ feeds }: Props) {
   }
 
   async function copyFeed(feed: BuilderFeed) {
-    await navigator.clipboard.writeText(feed.markdown);
+    await navigator.clipboard.writeText(feed.markdown).catch(() => undefined);
     flash("copied");
   }
 
   async function copySetupCommand() {
-    await navigator.clipboard.writeText(skillInstallCommand);
+    await navigator.clipboard.writeText(skillInstallCommand).catch(() => undefined);
     setCopiedCommand(true);
     window.setTimeout(() => setCopiedCommand(false), 1400);
-  }
-
-  function handleSubscribe(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    event.currentTarget.reset();
-    flash("subscribed");
   }
 
   async function submitLead(event: FormEvent<HTMLFormElement>) {
@@ -288,167 +319,262 @@ export function BuilderRadarApp({ feeds }: Props) {
   }
 
   return (
-    <main className="shell">
+    <main className={`shell design-${designVariant}`}>
       <header className="topbar">
         <a className="brand" href="#">
-          <span className="brand-mark">GB</span>
+          <BrandMark />
           <span>Builder Radar</span>
         </a>
         <nav className="nav-links" aria-label="Page navigation">
           <a href="#today">Today</a>
           <a href="#signals">Signals</a>
-          <a href="#archive">Archive</a>
+          <a href="#full-archive">Archive</a>
           <a href="#skill">Skill</a>
           <a href="#submit">Submit</a>
         </nav>
-        <a className="primary nav-cta" href="#subscribe">
-          Get the digest
+        <a className="primary nav-cta" href="#skill">
+          Install skill
         </a>
       </header>
 
-      <section className="hero" id="today" aria-labelledby="page-title">
-        <div className="hero-copy">
-          <h1 id="page-title">George's Builder Radar</h1>
-          <p className="hero-line">
-            Public builder signals from George's morning sweep of agents, repos,
-            launches, tools, and workflows.
-          </p>
-          <form className="subscribe-form" id="subscribe" onSubmit={handleSubscribe}>
-            <label className="sr-only" htmlFor="email">
-              Email
-            </label>
-            <input id="email" name="email" placeholder="you@example.com" type="email" required />
-            <button className="primary" type="submit">
-              <SendIcon />
-              Send me the digest
-            </button>
-          </form>
-          <div className="quick-stats" aria-label="Radar contents">
-            <span>{feeds.length} public feeds</span>
-            <span>X / GitHub / PH / YC / blogs</span>
-            <span>Agent systems and devtools</span>
-          </div>
-        </div>
-
-        <section className="daily-board" id="signals" aria-labelledby="signals-title">
-          <div className="section-heading">
-            <span>{selectedFeed.date}</span>
-            <h2 id="signals-title">Top signals</h2>
-          </div>
-          <div className="top-five-list">
-            {selectedFeed.signals.slice(0, 5).map((signal, index) => (
-              <a
-                className="top-five-row is-active"
-                href={signal.source || `/feeds/${selectedFeed.id}`}
-                key={`${selectedFeed.id}-${signal.title}`}
-              >
-                <span className="rank">{index + 1}</span>
-                <span className="thumb-cell" aria-hidden="true">
-                  SIG
-                </span>
-                <span className="row-main">
-                  <strong>{signal.title}</strong>
-                  <small>{signal.why}</small>
-                </span>
-              </a>
-            ))}
-          </div>
-        </section>
-      </section>
-
-      <section className="feature-detail" aria-label="Selected builder feed">
-        <div className="poster-tile">
-          <span>Feed</span>
-          <strong>{selectedFeed.date.slice(8)}</strong>
-          <small>{selectedFeed.status}</small>
-        </div>
-        <article className="detail-copy">
-          <div className="detail-meta">
-            <span>{selectedFeed.date}</span>
-            <span>{selectedFeed.status}</span>
-            <span>{selectedFeed.signals.length} signals</span>
-          </div>
-          <h2>{selectedFeed.title.replace("George's Builder Radar - ", "")}</h2>
-          <p>{selectedFeed.summary}</p>
-          <blockquote>
-            {selectedFeed.takeaways[0] ||
-              selectedFeed.signals[0]?.title ||
-              "Follow builders who ship."}
-          </blockquote>
-          <div className="why-box">
-            <span>Why builders should care</span>
-            <p>
-              The feed turns public launch noise into a compact operating read:
-              what is moving, what is reusable, and which workflows deserve a closer look.
-            </p>
-          </div>
-          <div className="tag-row">
-            <span>agents</span>
-            <span>repos</span>
-            <span>launches</span>
-            <span>workflow receipts</span>
-          </div>
-        </article>
-        <div className="detail-actions">
-          <button className="icon-button" onClick={() => copyFeed(selectedFeed)} type="button">
-            <CopyIcon />
-            <span>Copy</span>
-          </button>
-          <a className="icon-button" href="#submit">
-            <SendIcon />
-            <span>Send a signal</span>
-          </a>
-          <a className="icon-button" href={`/feeds/${selectedFeed.id}`}>
-            <SearchIcon />
-            <span>Open feed</span>
-          </a>
-        </div>
-      </section>
-
-      <section className="agent-setup" id="skill" aria-labelledby="skill-title">
-        <div>
-          <div className="section-heading">
-            <span>Agent skill</span>
-            <h2 id="skill-title">Use George's Builder Radar in your agent.</h2>
-          </div>
-          <p>
-            Install the skill to summarize the latest feed, set up scheduled delivery,
-            or turn the archive into an operator-style digest.
-          </p>
-        </div>
-        {leadUnlocked ? (
-          <div className="setup-command">
-            <code>{skillInstallCommand}</code>
-            <div className="setup-actions">
-              <button className="primary" onClick={copySetupCommand} type="button">
-                {copiedCommand ? "Copied" : "Copy command"}
-              </button>
-              <a href={skillRepoUrl}>Star the repo</a>
+      <section className="desk" id="today" aria-labelledby="page-title">
+        <div className="main-board">
+          <div className="board-head">
+            <div>
+              <div className="eyebrow">Public builder-signal feed</div>
+              <h1 id="page-title">George's Builder Radar</h1>
+              <p className="lede">
+                A dense read on agents, repos, launches, and workflows that show
+                proof. The feed comes first; the pitch stays small.
+              </p>
             </div>
-            <p>Star Builder Radar to save it and support the project.</p>
+            <div className="mini-metrics" aria-label="Radar stats">
+              <div className="metric">
+                <strong>{feeds.length}</strong>
+                <span>public feeds</span>
+              </div>
+              <div className="metric">
+                <strong>5</strong>
+                <span>source lanes</span>
+              </div>
+              <div className="metric">
+                <strong>{selectedFeed.signals.length}</strong>
+                <span>top signals today</span>
+              </div>
+            </div>
           </div>
-        ) : (
-          <form className="unlock-form" onSubmit={submitLead}>
-            <label>
-              Name
-              <input name="name" autoComplete="name" required />
-            </label>
-            <label>
-              Email
-              <input name="email" type="email" autoComplete="email" required />
-            </label>
-            <input type="text" name="website" tabIndex={-1} autoComplete="off" className="honeypot" />
-            <button className="primary" disabled={leadStatus === "submitting"} type="submit">
-              <SendIcon />
-              {leadStatus === "submitting" ? "Unlocking..." : "Unlock install command"}
-            </button>
-            <p>Unlocks the skill command and occasional updates. No spam.</p>
-            {leadStatus === "error" && <p className="error">{leadError}</p>}
-          </form>
-        )}
+
+          <div className="feed-grid">
+            <aside className="catalog" id="catalog" aria-label="Feed catalog">
+              <div className="catalog-head">
+                <label className="search-control compact-search">
+                  <SearchIcon />
+                  <input
+                    className="search"
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search feeds"
+                    type="search"
+                    value={query}
+                  />
+                </label>
+                <div className="filters compact-chips" aria-label="Catalog filters">
+                  {laneFilters.map(([value, label]) => (
+                    <button
+                      aria-pressed={laneFilter === value}
+                      className={`chip ${laneFilter === value ? "active" : ""}`}
+                      key={value}
+                      onClick={() => setLaneFilter(value)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="archive-list">
+                {sortedFeeds.slice(0, 6).map((feed) => (
+                  <a
+                    className={`catalog-row ${feed.id === selectedFeed.id ? "active" : ""}`}
+                    href={`/feeds/${feed.id}`}
+                    key={feed.id}
+                  >
+                    <span className="date-tile">{feed.date.slice(8)}</span>
+                    <span className="catalog-main">
+                      <strong>{feed.date}</strong>
+                      <small>{feed.summary}</small>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </aside>
+
+            <section className="feed-detail" id="signals" aria-labelledby="signals-title">
+              <div className="detail-topline">
+                <div>
+                  <div className="eyebrow">{selectedFeed.date} latest feed</div>
+                  <h2 id="signals-title">
+                    {selectedFeed.title.replace("George's Builder Radar - ", "")}
+                  </h2>
+                </div>
+                <div className="actions">
+                  <a className="btn primary" href={`/feeds/${selectedFeed.id}`}>
+                    Open feed
+                  </a>
+                  <button className="btn" onClick={() => copyFeed(selectedFeed)} type="button">
+                    Copy markdown
+                  </button>
+                </div>
+              </div>
+
+              <div className="signals">
+                {selectedFeed.signals.slice(0, 3).map((signal, index) => (
+                  <article className="signal-row" key={`${selectedFeed.id}-${signal.title}`}>
+                    <span className="rank">{index + 1}</span>
+                    <div>
+                      <h3>{signal.title}</h3>
+                      <p>{signal.why}</p>
+                    </div>
+                    <div className="source-box">
+                      <strong>Source</strong>
+                      {firstUrl(signal.source) ? (
+                        <a href={firstUrl(signal.source)}>Open receipt</a>
+                      ) : (
+                        "Source receipt in feed"
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="three-up">
+                <section className="mini-panel">
+                  <h3>X builder notes</h3>
+                  <ul>
+                    {selectedFeed.xNotes.slice(0, 2).map((item) => (
+                      <li key={item.title}>
+                        <LinkedItemTitle title={item.title} source={item.source} />
+                        {item.description && <>: {item.description}</>}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="mini-panel">
+                  <h3>Repo radar</h3>
+                  <ul>
+                    {selectedFeed.repos.slice(0, 2).map((item) => (
+                      <li key={item.title}>
+                        <LinkedItemTitle title={item.title} source={item.source} />
+                        {item.description && <>: {item.description}</>}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="mini-panel">
+                  <h3>Builder takeaways</h3>
+                  <ul>
+                    {selectedFeed.takeaways.slice(0, 2).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <aside
+          className="rail"
+          id="skill"
+          role="region"
+          aria-label="Install and delivery utility rail"
+        >
+          <section className="utility-card" aria-labelledby="skill-title">
+            <div className="eyebrow">Installable agent skill</div>
+            <h2 id="skill-title">Use the radar inside your agent.</h2>
+            <p>
+              Unlock the install command, then ask your agent for a daily or weekly digest.
+            </p>
+            {leadUnlocked ? (
+              <>
+                <div className="command">{skillInstallCommand}</div>
+                <div className="utility-actions">
+                  <button className="btn primary" onClick={copySetupCommand} type="button">
+                    {copiedCommand ? "Copied" : "Copy command"}
+                  </button>
+                  <a className="btn" href={skillRepoUrl}>
+                    Star the repo
+                  </a>
+                </div>
+              </>
+            ) : (
+              <form className="compact-form" onSubmit={submitLead}>
+                <input name="name" aria-label="Name" autoComplete="name" placeholder="Name" required />
+                <input
+                  name="email"
+                  type="email"
+                  aria-label="Email"
+                  autoComplete="email"
+                  placeholder="Email"
+                  required
+                />
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  className="honeypot"
+                />
+                <button className="btn primary" disabled={leadStatus === "submitting"} type="submit">
+                  {leadStatus === "submitting" ? "Unlocking..." : "Unlock command"}
+                </button>
+                {leadStatus === "error" && <p className="error">{leadError}</p>}
+              </form>
+            )}
+          </section>
+
+          <section className="utility-card">
+            <div className="eyebrow">Digest shape</div>
+            <h3>Delivery stays compact.</h3>
+            <p>
+              After install, ask your agent for a daily read, weekly rollup, or
+              operator-tone summary. This choice belongs inside the skill, not on
+              the public page.
+            </p>
+          </section>
+
+          <section className="utility-card" id="sources">
+            <div className="eyebrow">Source lanes</div>
+            <div className="source-map">
+              <div>
+                <strong>X notes</strong>
+                <span>builder posts</span>
+              </div>
+              <div>
+                <strong>GitHub</strong>
+                <span>repos and skills</span>
+              </div>
+              <div>
+                <strong>Launches</strong>
+                <span>PH and HN</span>
+              </div>
+              <div>
+                <strong>Longform</strong>
+                <span>queued context</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="utility-card boundary">
+            <h3>Public boundary</h3>
+            <p>
+              The archive shows public-safe feed content only. Private planning,
+              journal, email, health, and calendar context stay out.
+            </p>
+          </section>
+        </aside>
       </section>
 
-      <section className="archive-section" id="archive" aria-labelledby="archive-title">
+      <section className="archive-section" id="full-archive" aria-labelledby="archive-title">
         <div className="archive-head">
           <div className="section-heading">
             <span>Archive</span>
@@ -603,7 +729,6 @@ export function BuilderRadarApp({ feeds }: Props) {
 
       <div className={`toast ${notice !== "idle" ? "is-visible" : ""}`} role="status">
         {notice === "copied" && "Feed copied."}
-        {notice === "subscribed" && "You are on the Builder Radar digest list."}
         {notice === "submitted" && "Signal submitted for review."}
       </div>
     </main>

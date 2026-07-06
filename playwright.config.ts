@@ -22,6 +22,10 @@ export default defineConfig({
       name: "chromium-mobile",
       use: { ...devices["Pixel 5"] },
     },
+    {
+      name: "firefox-desktop",
+      use: { ...devices["Desktop Firefox"], viewport: { width: 1440, height: 1100 } },
+    },
   ],
   webServer: {
     command: "npm run start -- --port 4193",

@@ -146,6 +146,10 @@ npm run build
 npm run test:ui
 ```
 
+Marketing funnel note: [docs/marketing-funnel.md](docs/marketing-funnel.md).
+The current lead magnet is the installable skill; email capture unlocks the
+command, while digest delivery is configured through the user's agent/runtime.
+
 ## Try The Main Flow
 
 1. Open the latest feed.

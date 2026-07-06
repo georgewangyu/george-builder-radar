@@ -5,15 +5,16 @@ description: "Public builder-signal feed using George Design Language research-d
 mode: "research-desk"
 source: "../george-design-language/modes/research-desk.DESIGN.md"
 colors:
-  primary: "#1457FF"
-  ink: "#141414"
-  muted: "#64615A"
-  page: "#E9E4DC"
-  paper: "#FBFAF6"
+  primary: "#6B5CE7"
+  primary_strong: "#5147A9"
+  primary_soft: "#EEE9FF"
+  ink: "#161615"
+  muted: "#5F625C"
+  page: "#ECE9DF"
+  paper: "#FFFDF7"
   surface: "#FFFFFF"
-  line: "#D7D0C1"
-  signal: "#D7FF55"
-  green: "#176E45"
+  line: "#D6CEBD"
+  signal: "#D6B95A"
 ---
 
 # George Builder Radar Design Contract
@@ -29,7 +30,12 @@ The first viewport should show:
 - the Builder Radar name and builder-signal promise
 - latest public feed items or feed-detail path
 - source categories
-- install/request affordances
+- compact install/request affordances
+- a source-to-signal-to-receipt proof path
+
+The first screen should not be a large marketing hero. The feed and proof
+surface are the hero. The title must stay compact enough that visitors can see
+current signals without scrolling on normal desktop viewports.
 
 ## Layout
 
@@ -37,12 +43,18 @@ The first viewport should show:
 - Detail pages should make individual sources easy to inspect without
   overwhelming the feed.
 - Search/archive views should feel dense but calm.
+- Lead capture belongs near the installable-skill pitch, not as an oversized
+  newsletter form in the hero.
+- Use URL-driven visual samples for review when needed:
+  - `/` for compact signal desk
+  - `/?design=proof` for operator proof board
+  - `/?design=editorial` for editorial reference desk
 
 ## Typography And Color
 
 - Use George Research Desk tokens as the baseline.
-- Blue is the primary action/accent color.
-- Signal yellow-green is reserved for small highlights.
+- Use the SnackVoice purple-blue family for primary actions and active states.
+- Brass signal yellow is reserved for small highlights.
 - Avoid all-dark or all-beige treatments.
 
 ## Do
@@ -50,6 +62,8 @@ The first viewport should show:
 - Keep source links visible.
 - Make public/private boundaries explicit.
 - Preserve the daily/weekly digest path.
+- Explain that email unlocks the install command, while automated delivery
+  happens through the skill and the user's agent/runtime.
 
 ## Do Not
 
@@ -57,3 +71,5 @@ The first viewport should show:
 - Turn the page into a launch-news clone.
 - Use generic AI gradients or decorative glow.
 - Let cards nest inside other cards.
+- Present email delivery as the main product until the email digest workflow is
+  implemented and verified.
