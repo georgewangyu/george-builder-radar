@@ -196,4 +196,15 @@ test.describe("George's Builder Radar", () => {
     await expect(page.getByRole("heading", { name: "`usestrix/strix`" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Original links" })).toBeVisible();
   });
+
+  test("wrapped feed fields are parsed without truncation", async () => {
+    const feed = feeds.find((item) => item.id === "2026-07-08");
+
+    expect(feed?.signals[0]).toMatchObject({
+      title:
+        "personal agents are blocked less by model quality than by local permissions, login state, inboxes, and verification surfaces.",
+      why:
+        "useful agents need boring infrastructure before they can safely handle real workflows: authenticated local context, email checks, approval gates, receipts, and stop conditions.",
+    });
+  });
 });

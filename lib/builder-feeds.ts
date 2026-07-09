@@ -79,9 +79,32 @@ function bulletBlocks(sectionText: string) {
   return blocks;
 }
 
+function escapeRegExp(input: string) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isFieldLine(line: string) {
+  return /^\s*- [^:]+:\s*/.test(line);
+}
+
 function valueFrom(block: string, label: string) {
-  const pattern = new RegExp(`^\\s*- ${label}:\\s*(.+)$`, "m");
-  return block.match(pattern)?.[1]?.trim() || "";
+  const lines = block.split(/\r?\n/);
+  const pattern = new RegExp(`^\\s*- ${escapeRegExp(label)}:\\s*(.*)$`);
+  const start = lines.findIndex((line) => pattern.test(line));
+
+  if (start === -1) return "";
+
+  const firstValue = lines[start].match(pattern)?.[1]?.trim();
+  const parts = firstValue ? [firstValue] : [];
+
+  for (const line of lines.slice(start + 1)) {
+    if (isFieldLine(line) || line.startsWith("- ")) break;
+
+    const value = line.trim();
+    if (value) parts.push(value);
+  }
+
+  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
 function parseSignals(markdown: string) {
