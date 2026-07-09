@@ -1,4 +1,4 @@
-# George's Builder Radar - YYYY-MM-DD
+# YYYY-MM-DD Builder Radar
 
 Updated when George ran his morning routine.
 
@@ -49,4 +49,3 @@ Updated when George ran his morning routine.
 ## Source Receipts
 
 - Links:
-

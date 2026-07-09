@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { feeds } from "../lib/builder-feeds";
+import { displayFeedTitle } from "../lib/feed-title";
 
 const archivePageSize = 12;
 
@@ -28,7 +29,7 @@ test.describe("George's Builder Radar", () => {
     await expect(page).toHaveTitle("George's Builder Radar");
     await expect(page.getByRole("heading", { name: "George's Builder Radar", level: 1 })).toBeVisible();
     await expect(page.getByText("Public builder-signal feed")).toBeVisible();
-    await expect(page.getByRole("heading", { name: feeds[0].title.replace("George's Builder Radar - ", ""), level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: displayFeedTitle(feeds[0].title, feeds[0].date), level: 2 })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open feed" })).toHaveAttribute(
       "href",
       `/feeds/${feeds[0].id}`,
@@ -169,19 +170,22 @@ test.describe("George's Builder Radar", () => {
   });
 
   test("feed detail pages render source-backed sections", async ({ page }) => {
+    const feed = feeds.find((item) => item.id === "2026-06-30");
+    const expectedTitle = displayFeedTitle(feed?.title || "", feed?.date || "2026-06-30");
+
     await page.goto("/feeds/2026-06-30");
 
     await expect(page).toHaveTitle("2026-06-30 - George's Builder Radar");
     await expect(
       page.getByRole("heading", {
-        name: "Agent systems are becoming operational products, not just chat surfaces",
+        name: expectedTitle,
         level: 1,
       }),
     ).toBeVisible();
     await expect(page.getByLabel("Feed date 2026-06-30")).toBeVisible();
     const detailHeadingSize = await page
       .getByRole("heading", {
-        name: "Agent systems are becoming operational products, not just chat surfaces",
+        name: expectedTitle,
         level: 1,
       })
       .evaluate((heading) => Number.parseFloat(getComputedStyle(heading).fontSize));

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BrandMark } from "@/app/brand-mark";
 import { feedById, feeds, type BuilderItem, type BuilderSignal } from "@/lib/builder-feeds";
+import { displayFeedTitle } from "@/lib/feed-title";
 import { displaySourceLabel, extractUrls, firstUrl } from "@/lib/source-links";
 
 type PageProps = {
@@ -56,13 +57,9 @@ function ItemTitle({ item }: { item: BuilderItem }) {
   );
 }
 
-function displayFeedTitle(feed: NonNullable<ReturnType<typeof feedById>>) {
-  const title = feed.title.replace("George's Builder Radar - ", "");
-
-  if (title && title !== feed.date) return title;
+function feedPageTitle(feed: NonNullable<ReturnType<typeof feedById>>) {
   const signalTitle = feed.signals[0]?.title.split(":")[0]?.trim().replace(/\.$/, "");
-  if (signalTitle) return signalTitle;
-  return "Daily builder signal brief";
+  return displayFeedTitle(feed.title, feed.date, signalTitle);
 }
 
 function SignalList({ signals }: { signals: BuilderSignal[] }) {
@@ -100,7 +97,7 @@ export default async function FeedPage({ params }: PageProps) {
 
   if (!feed) notFound();
 
-  const displayTitle = displayFeedTitle(feed);
+  const displayTitle = feedPageTitle(feed);
   const receipts = Array.from(
     new Set(
       [

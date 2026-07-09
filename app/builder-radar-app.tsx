@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { BrandMark } from "./brand-mark";
 import type { BuilderFeed } from "@/lib/builder-feeds";
+import { displayFeedTitle } from "@/lib/feed-title";
 import { displaySourceLabel, firstUrl } from "@/lib/source-links";
 
 type Props = {
@@ -413,7 +414,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <div>
                   <div className="eyebrow">{selectedFeed.date} latest feed</div>
                   <h2 id="signals-title">
-                    {selectedFeed.title.replace("George's Builder Radar - ", "")}
+                    {displayFeedTitle(selectedFeed.title, selectedFeed.date)}
                   </h2>
                 </div>
                 <div className="actions">
