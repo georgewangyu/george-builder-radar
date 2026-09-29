@@ -107,14 +107,38 @@ function valueFrom(block: string, label: string) {
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
+function plainText(text: string) {
+  return text
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, "$1")
+    .replace(/[*`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function signalFromBlock(block: string): BuilderSignal {
+  const first = block.split(/\r?\n/)[0].replace(/^- (?:Signal:\s*)?/, "");
+  const fallbackTitle = first.match(/^\*\*(.+?)\*\*/)?.[1]
+    || first.match(/^\[([^\]]+)\]/)?.[1]
+    || first.split(/\.\s/)[0];
+  return {
+    title: plainText(fallbackTitle || valueFrom(block, "Signal")),
+    why: plainText(valueFrom(block, "Why it matters") || block.replace(/^- /, "")),
+    source: valueFrom(block, "Source")
+      || Array.from(new Set(block.match(/https?:\/\/[^\s),]+/g) || [])).join(" "),
+  };
+}
+
 function parseSignals(markdown: string) {
-  return bulletBlocks(section(markdown, "Top Signals"))
-    .map((block) => ({
-      title: valueFrom(block, "Signal"),
-      why: valueFrom(block, "Why it matters"),
-      source: valueFrom(block, "Source"),
-    }))
+  const topSignals = bulletBlocks(section(markdown, "Top Signals"))
+    .map(signalFromBlock)
     .filter((item) => item.title);
+
+  const lateHeading = markdown.split(/\r?\n/).find((line) => line.startsWith("## Late-Breaking AI Signal"))?.slice(3);
+  if (!lateHeading) return { signals: topSignals, summarySignal: topSignals[0] };
+
+  const lateSignals = bulletBlocks(section(markdown, lateHeading)).map(signalFromBlock);
+
+  return { signals: [...lateSignals, ...topSignals], summarySignal: topSignals[0] || lateSignals[0] };
 }
 
 function parseItems(markdown: string, heading: string, titleLabel: string, descriptionLabels: string[]) {
@@ -152,10 +176,10 @@ function parseFeed(filePath: string): BuilderFeed {
   const markdown = readFileSync(filePath, "utf8");
   const fileName = path.basename(filePath, ".md");
   const title = markdown.match(/^# (.+)$/m)?.[1]?.trim() || "George's Builder Radar";
-  const signals = parseSignals(markdown);
+  const { signals, summarySignal } = parseSignals(markdown);
   const date = fileName.match(/\d{4}-\d{2}-\d{2}/)?.[0] || fileName;
   const summary =
-    signals[0]?.why ||
+    summarySignal?.why ||
     firstLineFor(markdown, "Updated") ||
     "A public-safe builder digest from George's morning routine.";
 
