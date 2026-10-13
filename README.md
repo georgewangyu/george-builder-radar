@@ -48,6 +48,13 @@ A daily or weekly digest, delivered in chat or to your preferred channel, with:
 - official AI/devtool blog updates
 - selected podcast and longform episodes
 - source links for every item
+- complete dated-feed snapshot, official updates and source qualifications, including prose evening additions
+
+Before publishing a dated feed, run `node scripts/validate-feed.js <feed-path>`.
+Explicit paths check both section structure and accidental internal scoring or
+selection instructions. The no-argument command remains the legacy archive
+structure audit. Regression checks: `node scripts/test-feed-context.cjs` and
+`node scripts/test-feed-publication.cjs`.
 
 ## Quick Start
 

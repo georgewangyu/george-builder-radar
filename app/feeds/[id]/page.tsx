@@ -105,6 +105,7 @@ export default async function FeedPage({ params }: PageProps) {
         ...feed.xNotes.flatMap((item) => extractUrls(`${item.title} ${item.source}`)),
         ...feed.repos.flatMap((item) => extractUrls(`${item.title} ${item.source}`)),
         ...feed.launches.flatMap((item) => extractUrls(`${item.title} ${item.source}`)),
+        ...feed.context.flatMap((entry) => entry.sources),
       ].filter(Boolean),
     ),
   );
@@ -212,6 +213,19 @@ export default async function FeedPage({ params }: PageProps) {
           </div>
         </section>
       )}
+
+      {feed.context.map((entry, index) => (
+        <section className="feed-section" key={`${entry.title}-${index}`}>
+          <div className="section-heading feed-section-head">
+            <h2>{entry.title}</h2>
+          </div>
+          <div className="feed-section-body">
+            {entry.paragraphs.map((paragraph, paragraphIndex) => (
+              <p key={paragraphIndex}>{paragraph}</p>
+            ))}
+          </div>
+        </section>
+      ))}
 
       {receipts.length > 0 && (
         <section className="feed-section" aria-labelledby="receipts-title">

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readdir, readFile } from "fs/promises";
-import { join } from "path";
+import { join, resolve } from "path";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -29,9 +29,16 @@ async function walk(dir) {
 }
 
 let ok = true;
-for (const file of await walk(join(root, "feeds"))) {
+const requested = process.argv.slice(2);
+const files = requested.length ? requested.map((file) => resolve(file)) : await walk(join(root, "feeds"));
+const internalRubric = /attention_heat|builder_fit|single[ -]segment|drop-everything|specialist override|omission audit|default heat threshold|\b\d+(?:\.\d+)?\s+attention\s*\/\s*\d+(?:\.\d+)?\s+fit\b|neutral\s*50\s+prior|\b\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?[,;]\s*(?:watch|hot|rising|peaking|cooling)\s*\/\s*(?:mention|ignore)|\bmention\s*\(\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?\)/i;
+for (const file of files) {
   if (file.endsWith("README.md")) continue;
   const text = await readFile(file, "utf8");
+  if (requested.length && internalRubric.test(text)) {
+    console.error(`${file}: contains internal scoring or selection instructions`);
+    ok = false;
+  }
   for (const heading of required) {
     if (!text.includes(heading)) {
       console.error(`${file}: missing ${heading}`);

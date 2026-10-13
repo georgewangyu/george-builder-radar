@@ -26,6 +26,7 @@ export type BuilderFeed = {
   repos: BuilderItem[];
   launches: BuilderItem[];
   takeaways: string[];
+  context: { title: string; paragraphs: string[]; sources: string[] }[];
 };
 
 const feedsRoot = path.join(process.cwd(), "feeds");
@@ -133,10 +134,16 @@ function parseSignals(markdown: string) {
     .map(signalFromBlock)
     .filter((item) => item.title);
 
-  const lateHeading = markdown.split(/\r?\n/).find((line) => line.startsWith("## Late-Breaking AI Signal"))?.slice(3);
-  if (!lateHeading) return { signals: topSignals, summarySignal: topSignals[0] };
-
-  const lateSignals = bulletBlocks(section(markdown, lateHeading)).map(signalFromBlock);
+  const lateHeadings = markdown.split(/\r?\n/)
+    .filter((line) => line.startsWith("## Late-Breaking AI Signal"))
+    .map((line) => line.slice(3));
+  const lateSignals = lateHeadings.flatMap((heading) => {
+    const content = section(markdown, heading);
+    const blocks = bulletBlocks(content);
+    return (blocks.length > 0 ? blocks : [content])
+      .filter((block) => block.trim())
+      .map(signalFromBlock);
+  });
 
   return { signals: [...lateSignals, ...topSignals], summarySignal: topSignals[0] || lateSignals[0] };
 }
@@ -146,12 +153,46 @@ function parseItems(markdown: string, heading: string, titleLabel: string, descr
     .map((block) => {
       const title = valueFrom(block, titleLabel) || block.split("\n")[0]?.replace(/^- /, "").trim();
       const description =
-        descriptionLabels.map((label) => valueFrom(block, label)).find(Boolean) || "";
-      const source = valueFrom(block, "Source");
+        descriptionLabels.map((label) => valueFrom(block, label)).find(Boolean)
+        || plainText(block.replace(/^- /, ""));
+      const source = valueFrom(block, "Source")
+        || Array.from(new Set(block.match(/https?:\/\/[^\s),]+/g) || [])).join(" ");
 
       return { title, description, source };
     })
     .filter((item) => item.title);
+}
+
+function parseContext(markdown: string) {
+  const context: BuilderFeed["context"] = [];
+  const intro = markdown.split(/^## /m)[0].replace(/^# .+\n/, "").trim();
+  if (intro) {
+    context.push({ title: "Snapshot", paragraphs: [plainText(intro)], sources: [] });
+  }
+  const structured = new Set([
+    "Top Signals", "X Builder Notes", "GitHub / Repo Radar", "Launch Radar",
+    "Builder Takeaways",
+  ]);
+  for (const match of markdown.matchAll(/^## (.+)$/gm)) {
+    const title = match[1].trim();
+    let content = section(markdown, title);
+    const isLate = title.startsWith("Late-Breaking AI Signal");
+    if (isLate && bulletBlocks(content).length === 0) continue;
+    if (structured.has(title) || isLate) {
+      for (const block of bulletBlocks(content)) content = content.replace(block, "");
+    }
+    const paragraphs = content.split(/\n\s*\n/)
+      .map((paragraph) => plainText(paragraph.replace(/^- /gm, "")))
+      .filter(Boolean);
+    if (paragraphs.length) {
+      context.push({
+        title,
+        paragraphs,
+        sources: Array.from(new Set(content.match(/https?:\/\/[^\s),]+/g) || [])),
+      });
+    }
+  }
+  return context;
 }
 
 function parseTakeaways(markdown: string) {
@@ -204,6 +245,7 @@ function parseFeed(filePath: string): BuilderFeed {
       "Wedge",
     ]),
     takeaways: parseTakeaways(markdown),
+    context: parseContext(markdown),
   };
 }
 
