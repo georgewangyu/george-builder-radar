@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "fs";
 import path from "path";
+import { extractUrls } from "./source-links";
 
 export type BuilderSignal = {
   title: string;
@@ -125,7 +126,7 @@ function signalFromBlock(block: string): BuilderSignal {
     title: plainText(fallbackTitle || valueFrom(block, "Signal")),
     why: plainText(valueFrom(block, "Why it matters") || block.replace(/^- /, "")),
     source: valueFrom(block, "Source")
-      || Array.from(new Set(block.match(/https?:\/\/[^\s),]+/g) || [])).join(" "),
+      || extractUrls(block).join(" "),
   };
 }
 
@@ -156,7 +157,7 @@ function parseItems(markdown: string, heading: string, titleLabel: string, descr
         descriptionLabels.map((label) => valueFrom(block, label)).find(Boolean)
         || plainText(block.replace(/^- /, ""));
       const source = valueFrom(block, "Source")
-        || Array.from(new Set(block.match(/https?:\/\/[^\s),]+/g) || [])).join(" ");
+        || extractUrls(block).join(" ");
 
       return { title, description, source };
     })
@@ -188,7 +189,7 @@ function parseContext(markdown: string) {
       context.push({
         title,
         paragraphs,
-        sources: Array.from(new Set(content.match(/https?:\/\/[^\s),]+/g) || [])),
+        sources: extractUrls(content),
       });
     }
   }
