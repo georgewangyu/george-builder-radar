@@ -13,7 +13,6 @@ type Props = {
 type SortMode = "latest" | "signals" | "title";
 type Notice = "idle" | "copied" | "submitted";
 type FormStatus = "idle" | "submitting" | "success" | "error";
-type DesignVariant = "compact" | "proof" | "editorial";
 type LaneFilter = "latest" | "repos" | "launches" | "x";
 
 type ErrorResponse = {
@@ -25,6 +24,13 @@ const submissionTypes = [
   ["submit-signal", "Submit signal"],
   ["request-source", "Request source"],
   ["improve-feed", "Improve feed"],
+] as const;
+
+const sourceLanes = [
+  ["X notes", "builder posts"],
+  ["GitHub", "repos and skills"],
+  ["Launches", "PH and HN"],
+  ["Longform", "queued context"],
 ] as const;
 
 const sortOptions: Array<[SortMode, string]> = [
@@ -78,15 +84,6 @@ function SearchIcon() {
     <svg aria-hidden="true" className="icon" viewBox="0 0 24 24">
       <path d="m21 21-4.3-4.3" />
       <circle cx="10.8" cy="10.8" r="6.6" />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg aria-hidden="true" className="icon" viewBox="0 0 24 24">
-      <rect height="12" rx="2" width="12" x="8" y="8" />
-      <path d="M4 16.2V5.8C4 4.8 4.8 4 5.8 4h10.4" />
     </svg>
   );
 }
@@ -152,8 +149,6 @@ async function leadErrorMessageFor(response: Response) {
 
 export function BuilderRadarApp({ feeds }: Props) {
   const latestFeed = feeds[0];
-  const [designVariant, setDesignVariant] = useState<DesignVariant>("compact");
-  const [selectedId, setSelectedId] = useState(latestFeed?.id || feeds[0]?.id);
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [laneFilter, setLaneFilter] = useState<LaneFilter>("latest");
@@ -167,8 +162,6 @@ export function BuilderRadarApp({ feeds }: Props) {
   const [leadError, setLeadError] = useState("");
   const [page, setPage] = useState(1);
 
-  const selectedFeed =
-    feeds.find((feed) => feed.id === selectedId) || latestFeed || feeds[0];
 
   const filteredFeeds = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -209,11 +202,6 @@ export function BuilderRadarApp({ feeds }: Props) {
 
   useEffect(() => {
     setLeadUnlocked(window.localStorage.getItem(leadStorageKey) === "true");
-
-    const design = new URLSearchParams(window.location.search).get("design");
-    if (design === "proof" || design === "editorial") {
-      setDesignVariant(design);
-    }
   }, []);
 
   useEffect(() => {
@@ -308,7 +296,7 @@ export function BuilderRadarApp({ feeds }: Props) {
     }
   }
 
-  if (!selectedFeed) {
+  if (!latestFeed) {
     return (
       <main className="shell">
         <section className="empty-state">
@@ -320,7 +308,7 @@ export function BuilderRadarApp({ feeds }: Props) {
   }
 
   return (
-    <main className={`shell design-${designVariant}`}>
+    <main className="shell">
       <header className="topbar">
         <a className="brand" href="#">
           <BrandMark />
@@ -355,11 +343,11 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <span>public feeds</span>
               </div>
               <div className="metric">
-                <strong>5</strong>
+                <strong>{sourceLanes.length}</strong>
                 <span>source lanes</span>
               </div>
               <div className="metric">
-                <strong>{selectedFeed.signals.length}</strong>
+                <strong>{latestFeed.signals.length}</strong>
                 <span>top signals today</span>
               </div>
             </div>
@@ -395,7 +383,7 @@ export function BuilderRadarApp({ feeds }: Props) {
               <div className="archive-list">
                 {sortedFeeds.slice(0, 6).map((feed) => (
                   <a
-                    className={`catalog-row ${feed.id === selectedFeed.id ? "active" : ""}`}
+                    className={`catalog-row ${feed.id === latestFeed.id ? "active" : ""}`}
                     href={`/feeds/${feed.id}`}
                     key={feed.id}
                   >
@@ -412,24 +400,24 @@ export function BuilderRadarApp({ feeds }: Props) {
             <section className="feed-detail" id="signals" aria-labelledby="signals-title">
               <div className="detail-topline">
                 <div>
-                  <div className="eyebrow">{selectedFeed.date} latest feed</div>
+                  <div className="eyebrow">{latestFeed.date} latest feed</div>
                   <h2 id="signals-title">
-                    {displayFeedTitle(selectedFeed.title, selectedFeed.date)}
+                    {displayFeedTitle(latestFeed.title, latestFeed.date)}
                   </h2>
                 </div>
                 <div className="actions">
-                  <a className="btn primary" href={`/feeds/${selectedFeed.id}`}>
+                  <a className="btn primary" href={`/feeds/${latestFeed.id}`}>
                     Open feed
                   </a>
-                  <button className="btn" onClick={() => copyFeed(selectedFeed)} type="button">
+                  <button className="btn" onClick={() => copyFeed(latestFeed)} type="button">
                     Copy markdown
                   </button>
                 </div>
               </div>
 
               <div className="signals">
-                {selectedFeed.signals.slice(0, 3).map((signal, index) => (
-                  <article className="signal-row" key={`${selectedFeed.id}-${signal.title}`}>
+                {latestFeed.signals.slice(0, 3).map((signal, index) => (
+                  <article className="signal-row" key={`${latestFeed.id}-${signal.title}`}>
                     <span className="rank">{index + 1}</span>
                     <div>
                       <h3>{signal.title}</h3>
@@ -451,7 +439,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <section className="mini-panel">
                   <h3>X builder notes</h3>
                   <ul>
-                    {selectedFeed.xNotes.slice(0, 2).map((item) => (
+                    {latestFeed.xNotes.slice(0, 2).map((item) => (
                       <li key={item.title}>
                         <LinkedItemTitle title={item.title} source={item.source} />
                         {item.description && <>: {item.description}</>}
@@ -462,7 +450,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <section className="mini-panel">
                   <h3>Repo radar</h3>
                   <ul>
-                    {selectedFeed.repos.slice(0, 2).map((item) => (
+                    {latestFeed.repos.slice(0, 2).map((item) => (
                       <li key={item.title}>
                         <LinkedItemTitle title={item.title} source={item.source} />
                         {item.description && <>: {item.description}</>}
@@ -473,7 +461,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <section className="mini-panel">
                   <h3>Builder takeaways</h3>
                   <ul>
-                    {selectedFeed.takeaways.slice(0, 2).map((item) => (
+                    {latestFeed.takeaways.slice(0, 2).map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
@@ -546,22 +534,12 @@ export function BuilderRadarApp({ feeds }: Props) {
           <section className="utility-card" id="sources">
             <div className="eyebrow">Source lanes</div>
             <div className="source-map">
-              <div>
-                <strong>X notes</strong>
-                <span>builder posts</span>
-              </div>
-              <div>
-                <strong>GitHub</strong>
-                <span>repos and skills</span>
-              </div>
-              <div>
-                <strong>Launches</strong>
-                <span>PH and HN</span>
-              </div>
-              <div>
-                <strong>Longform</strong>
-                <span>queued context</span>
-              </div>
+              {sourceLanes.map(([lane, detail]) => (
+                <div key={lane}>
+                  <strong>{lane}</strong>
+                  <span>{detail}</span>
+                </div>
+              ))}
             </div>
           </section>
 
