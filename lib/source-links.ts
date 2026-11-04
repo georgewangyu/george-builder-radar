@@ -31,3 +31,8 @@ export function displaySourceLabel(url: string) {
     return url;
   }
 }
+
+export function sourceTitle(title: string, source: string) {
+  const href = firstUrl(title, source);
+  return { href, label: href && title === href ? displaySourceLabel(href) : title };
+}

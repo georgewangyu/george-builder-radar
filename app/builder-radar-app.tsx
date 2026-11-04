@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { BrandMark } from "./brand-mark";
 import type { BuilderFeed } from "@/lib/builder-feeds";
 import { displayFeedTitle } from "@/lib/feed-title";
-import { displaySourceLabel, firstUrl } from "@/lib/source-links";
+import { firstUrl, sourceTitle } from "@/lib/source-links";
 
 type Props = {
   feeds: BuilderFeed[];
@@ -67,8 +67,7 @@ const leadStorageKey = "george-builder-radar-install-unlocked";
 const pageSize = 12;
 
 function LinkedItemTitle({ title, source }: { title: string; source: string }) {
-  const href = firstUrl(title, source);
-  const label = href && title === href ? displaySourceLabel(href) : title;
+  const { href, label } = sourceTitle(title, source);
 
   if (!href) return <strong>{label}</strong>;
 
@@ -115,36 +114,36 @@ function sortFeeds(items: BuilderFeed[], sortMode: SortMode) {
   return [...items].sort((left, right) => right.date.localeCompare(left.date));
 }
 
-async function errorMessageFor(response: Response) {
+type ErrorCopy = {
+  labels: Record<string, string>;
+  unavailable: string;
+  invalid: string;
+};
+
+const submitErrorCopy: ErrorCopy = {
+  labels: issueLabels,
+  unavailable: "Something went wrong. Try again or send the signal another way.",
+  invalid: "Please check the form and try again.",
+};
+
+const leadErrorCopy: ErrorCopy = {
+  labels: leadLabels,
+  unavailable: "Could not unlock the install command. Try again in a moment.",
+  invalid: "Please check your email and try again.",
+};
+
+async function errorMessageFor(response: Response, copy: ErrorCopy) {
   if (response.status !== 400) {
-    return "Something went wrong. Try again or send the signal another way.";
+    return copy.unavailable;
   }
 
   const body = (await response.json().catch(() => null)) as ErrorResponse | null;
   const fieldMessages = Object.entries(body?.issues || {}).flatMap(
     ([field, messages]) =>
-      (messages || []).map((message) => `${issueLabels[field] || field}: ${message}`),
+      (messages || []).map((message) => `${copy.labels[field] || field}: ${message}`),
   );
 
-  return fieldMessages.length > 0
-    ? fieldMessages.join(" ")
-    : body?.error || "Please check the form and try again.";
-}
-
-async function leadErrorMessageFor(response: Response) {
-  if (response.status !== 400) {
-    return "Could not unlock the install command. Try again in a moment.";
-  }
-
-  const body = (await response.json().catch(() => null)) as ErrorResponse | null;
-  const fieldMessages = Object.entries(body?.issues || {}).flatMap(
-    ([field, messages]) =>
-      (messages || []).map((message) => `${leadLabels[field] || field}: ${message}`),
-  );
-
-  return fieldMessages.length > 0
-    ? fieldMessages.join(" ")
-    : body?.error || "Please check your email and try again.";
+  return fieldMessages.length > 0 ? fieldMessages.join(" ") : body?.error || copy.invalid;
 }
 
 export function BuilderRadarApp({ feeds }: Props) {
@@ -241,7 +240,7 @@ export function BuilderRadarApp({ feeds }: Props) {
 
       if (!response.ok) {
         setLeadStatus("error");
-        setLeadError(await leadErrorMessageFor(response));
+        setLeadError(await errorMessageFor(response, leadErrorCopy));
         return;
       }
 
@@ -251,7 +250,7 @@ export function BuilderRadarApp({ feeds }: Props) {
       formElement.reset();
     } catch {
       setLeadStatus("error");
-      setLeadError("Could not unlock the install command. Try again in a moment.");
+      setLeadError(leadErrorCopy.unavailable);
     }
   }
 
@@ -282,7 +281,7 @@ export function BuilderRadarApp({ feeds }: Props) {
 
       if (!response.ok) {
         setFormStatus("error");
-        setError(await errorMessageFor(response));
+        setError(await errorMessageFor(response, submitErrorCopy));
         return;
       }
 
@@ -292,7 +291,7 @@ export function BuilderRadarApp({ feeds }: Props) {
       flash("submitted");
     } catch {
       setFormStatus("error");
-      setError("Something went wrong. Try again or send the signal another way.");
+      setError(submitErrorCopy.unavailable);
     }
   }
 

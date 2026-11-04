@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { BrandMark } from "@/app/brand-mark";
 import { feedById, feeds, type BuilderItem, type BuilderSignal } from "@/lib/builder-feeds";
 import { displayFeedTitle } from "@/lib/feed-title";
-import { displaySourceLabel, extractUrls, firstUrl } from "@/lib/source-links";
+import { displaySourceLabel, extractUrls, firstUrl, sourceTitle } from "@/lib/source-links";
 
 type PageProps = {
   params: Promise<{
@@ -43,14 +43,13 @@ function SourceLink({ href }: { href: string }) {
 }
 
 function ItemTitle({ item }: { item: BuilderItem }) {
-  const url = firstUrl(item.title, item.source);
-  const label = url && item.title === url ? displaySourceLabel(url) : item.title;
+  const { href, label } = sourceTitle(item.title, item.source);
 
-  if (!url) return <h3>{label}</h3>;
+  if (!href) return <h3>{label}</h3>;
 
   return (
     <h3>
-      <a className="feed-title-link" href={url}>
+      <a className="feed-title-link" href={href}>
         {label}
       </a>
     </h3>
