@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readdir, readFile } from "fs/promises";
-import { join, resolve } from "path";
+import { join, relative, resolve } from "path";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -28,6 +28,13 @@ async function walk(dir) {
   return files;
 }
 
+const legacyAllowlist = new Set(
+  (await readFile(join(root, "config", "rubric-legacy-allowlist.txt"), "utf8"))
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#")),
+);
+
 let ok = true;
 const requested = process.argv.slice(2);
 const files = requested.length ? requested.map((file) => resolve(file)) : await walk(join(root, "feeds"));
@@ -35,7 +42,8 @@ const internalRubric = /attention_heat|builder_fit|single[ -]segment|drop-everyt
 for (const file of files) {
   if (file.endsWith("README.md")) continue;
   const text = await readFile(file, "utf8");
-  if (requested.length && internalRubric.test(text)) {
+  const checkRubric = requested.length > 0 || !legacyAllowlist.has(relative(root, file));
+  if (checkRubric && internalRubric.test(text)) {
     console.error(`${file}: contains internal scoring or selection instructions`);
     ok = false;
   }

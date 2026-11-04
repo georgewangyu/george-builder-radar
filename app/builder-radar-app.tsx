@@ -312,7 +312,7 @@ export function BuilderRadarApp({ feeds }: Props) {
     return (
       <main className="shell">
         <section className="empty-state">
-          <h1>George's Builder Radar</h1>
+          <h1>George&apos;s Builder Radar</h1>
           <p>No public feeds are available yet.</p>
         </section>
       </main>
@@ -343,7 +343,7 @@ export function BuilderRadarApp({ feeds }: Props) {
           <div className="board-head">
             <div>
               <div className="eyebrow">Public builder-signal feed</div>
-              <h1 id="page-title">George's Builder Radar</h1>
+              <h1 id="page-title">George&apos;s Builder Radar</h1>
               <p className="lede">
                 A dense read on agents, repos, launches, and workflows that show
                 proof. The feed comes first; the pitch stays small.
@@ -669,7 +669,7 @@ export function BuilderRadarApp({ feeds }: Props) {
           </div>
           <p>
             Send a repo, launch, post, podcast, or source request. Public submissions
-            go to the shared public queue; private notes go to George's private intake.
+            go to the shared public queue; private notes go to George&apos;s private intake.
           </p>
         </div>
         <form className="submit-form" onSubmit={handleSubmitSignal}>
@@ -724,7 +724,7 @@ export function BuilderRadarApp({ feeds }: Props) {
       </section>
 
       <footer className="footer">
-        <span>George's Builder Radar</span>
+        <span>George&apos;s Builder Radar</span>
         <span>Public builder signals, edited for agents and humans.</span>
       </footer>
 

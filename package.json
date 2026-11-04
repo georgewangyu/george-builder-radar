@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test",
+    "lint": "eslint .",
+    "test:unit": "node scripts/test-feed-context.cjs && node scripts/test-feed-publication.cjs",
+    "validate": "node scripts/validate-feed.js",
+    "check": "npm run typecheck && npm run lint && npm run test:unit && npm run validate"
   },
   "dependencies": {
     "next": "^15.5.29",
@@ -16,10 +20,13 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "^1.61.1",
     "@types/node": "^22.15.34",
     "@types/react": "^19.0.14",
     "@types/react-dom": "^19.0.6",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.29",
     "typescript": "^5.8.3"
   },
   "overrides": {

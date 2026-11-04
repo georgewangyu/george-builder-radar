@@ -21,6 +21,26 @@ try {
   }
   fs.writeFileSync(file, clean.replace("## Source Receipts", "Source Receipts"));
   assert.equal(invoke().status, 1);
+  const archive = fs.mkdtempSync(path.join(os.tmpdir(), "feed-archive-"));
+  try {
+    const feedDir = path.join(archive, "feeds/2026/07");
+    fs.mkdirSync(path.join(archive, "config"), { recursive: true });
+    fs.mkdirSync(path.join(archive, "scripts"), { recursive: true });
+    fs.mkdirSync(feedDir, { recursive: true });
+    fs.copyFileSync(script, path.join(archive, "scripts/validate-feed.js"));
+    fs.writeFileSync(path.join(feedDir, "2026-07-10.md"), clean + "attention_heat 88");
+    const archiveRun = () => spawnSync(process.execPath, [path.join(archive, "scripts/validate-feed.js")], { encoding: "utf8" });
+    fs.writeFileSync(path.join(archive, "config/rubric-legacy-allowlist.txt"), "# legacy\nfeeds/2026/07/2026-07-10.md\n");
+    assert.equal(archiveRun().status, 0, "allowlisted legacy feed passes the full-archive run");
+    const explicitRun = spawnSync(process.execPath, [path.join(archive, "scripts/validate-feed.js"), path.join(feedDir, "2026-07-10.md")], { encoding: "utf8" });
+    assert.equal(explicitRun.status, 1, "an explicit path is always rubric-checked, even if allowlisted");
+    fs.writeFileSync(path.join(archive, "config/rubric-legacy-allowlist.txt"), "# legacy\n");
+    const leaked = archiveRun();
+    assert.equal(leaked.status, 1, "a non-allowlisted feed with scoring text fails the full-archive run");
+    assert.match(leaked.stderr, /internal scoring or selection instructions/);
+  } finally {
+    fs.rmSync(archive, { recursive: true, force: true });
+  }
   console.log("Explicit feed selection and public editorial-boundary tests passed.");
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });
