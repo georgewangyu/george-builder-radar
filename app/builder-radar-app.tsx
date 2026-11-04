@@ -3,11 +3,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { BrandMark } from "./brand-mark";
 import type { BuilderFeed } from "@/lib/builder-feeds";
+import { summarySearchText, type FeedSummary, type SearchIndex } from "@/lib/feed-summary";
 import { displayFeedTitle } from "@/lib/feed-title";
 import { firstUrl, sourceTitle } from "@/lib/source-links";
 
 type Props = {
-  feeds: BuilderFeed[];
+  latestFeed?: BuilderFeed;
+  archive: FeedSummary[];
 };
 
 type SortMode = "latest" | "signals" | "title";
@@ -96,11 +98,11 @@ function SendIcon() {
   );
 }
 
-function sortFeeds(items: BuilderFeed[], sortMode: SortMode) {
+function sortFeeds(items: FeedSummary[], sortMode: SortMode) {
   if (sortMode === "signals") {
     return [...items].sort(
       (left, right) =>
-        right.signals.length - left.signals.length ||
+        right.signalCount - left.signalCount ||
         right.date.localeCompare(left.date),
     );
   }
@@ -146,8 +148,16 @@ async function errorMessageFor(response: Response, copy: ErrorCopy) {
   return fieldMessages.length > 0 ? fieldMessages.join(" ") : body?.error || copy.invalid;
 }
 
-export function BuilderRadarApp({ feeds }: Props) {
-  const latestFeed = feeds[0];
+let searchIndexRequest: Promise<SearchIndex | null> | null = null;
+
+function loadSearchIndex() {
+  searchIndexRequest ??= fetch("/search-index.json")
+    .then((response) => (response.ok ? (response.json() as Promise<SearchIndex>) : null))
+    .catch(() => null);
+  return searchIndexRequest;
+}
+
+export function BuilderRadarApp({ latestFeed, archive }: Props) {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [laneFilter, setLaneFilter] = useState<LaneFilter>("latest");
@@ -160,34 +170,34 @@ export function BuilderRadarApp({ feeds }: Props) {
   const [leadUnlocked, setLeadUnlocked] = useState(false);
   const [leadError, setLeadError] = useState("");
   const [page, setPage] = useState(1);
+  const [searchIndex, setSearchIndex] = useState<SearchIndex | null>(null);
 
 
   const filteredFeeds = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return feeds.filter((feed) => {
+    return archive.filter((feed) => {
       const laneMatches =
         laneFilter === "latest" ||
-        (laneFilter === "repos" && feed.repos.length > 0) ||
-        (laneFilter === "launches" && feed.launches.length > 0) ||
-        (laneFilter === "x" && feed.xNotes.length > 0);
+        (laneFilter === "repos" && feed.hasRepos) ||
+        (laneFilter === "launches" && feed.hasLaunches) ||
+        (laneFilter === "x" && feed.hasXNotes);
 
-      const haystack = [
-        feed.title,
-        feed.date,
-        feed.summary,
-        feed.signals.map((signal) => `${signal.title} ${signal.why}`).join(" "),
-        feed.xNotes.map((item) => `${item.title} ${item.description}`).join(" "),
-        feed.repos.map((item) => `${item.title} ${item.description}`).join(" "),
-        feed.launches.map((item) => `${item.title} ${item.description}`).join(" "),
-        feed.takeaways.join(" "),
-      ]
-        .join(" ")
-        .toLowerCase();
-
+      const haystack = searchIndex?.[feed.id] ?? summarySearchText(feed);
       return laneMatches && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
-  }, [feeds, laneFilter, query]);
+  }, [archive, laneFilter, query, searchIndex]);
+
+  useEffect(() => {
+    if (!query.trim() || searchIndex) return;
+    let mounted = true;
+    loadSearchIndex().then((index) => {
+      if (mounted && index) setSearchIndex(index);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [query, searchIndex]);
 
   const sortedFeeds = useMemo(
     () => sortFeeds(filteredFeeds, sortMode),
@@ -338,7 +348,7 @@ export function BuilderRadarApp({ feeds }: Props) {
             </div>
             <div className="mini-metrics" aria-label="Radar stats">
               <div className="metric">
-                <strong>{feeds.length}</strong>
+                <strong>{archive.length}</strong>
                 <span>public feeds</span>
               </div>
               <div className="metric">
@@ -609,7 +619,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <small>{feed.summary}</small>
               </span>
               <span className="archive-chip">{feed.status}</span>
-              <span className="heat">{feed.signals.length} signals</span>
+              <span className="heat">{feed.signalCount} signals</span>
             </a>
           ))}
         </div>
