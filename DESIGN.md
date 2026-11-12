@@ -45,10 +45,8 @@ current signals without scrolling on normal desktop viewports.
 - Search/archive views should feel dense but calm.
 - Lead capture belongs near the installable-skill pitch, not as an oversized
   newsletter form in the hero.
-- Use URL-driven visual samples for review when needed:
-  - `/` for compact signal desk
-  - `/?design=proof` for operator proof board
-  - `/?design=editorial` for editorial reference desk
+- The site has one design, the compact signal desk at `/`. The earlier
+  `?design=proof` and `?design=editorial` samples were removed.
 
 ## Typography And Color
 

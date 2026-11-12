@@ -3,17 +3,18 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { BrandMark } from "./brand-mark";
 import type { BuilderFeed } from "@/lib/builder-feeds";
+import { summarySearchText, type FeedSummary, type SearchIndex } from "@/lib/feed-summary";
 import { displayFeedTitle } from "@/lib/feed-title";
-import { displaySourceLabel, firstUrl } from "@/lib/source-links";
+import { firstUrl, sourceTitle } from "@/lib/source-links";
 
 type Props = {
-  feeds: BuilderFeed[];
+  latestFeed?: BuilderFeed;
+  archive: FeedSummary[];
 };
 
 type SortMode = "latest" | "signals" | "title";
 type Notice = "idle" | "copied" | "submitted";
 type FormStatus = "idle" | "submitting" | "success" | "error";
-type DesignVariant = "compact" | "proof" | "editorial";
 type LaneFilter = "latest" | "repos" | "launches" | "x";
 
 type ErrorResponse = {
@@ -25,6 +26,13 @@ const submissionTypes = [
   ["submit-signal", "Submit signal"],
   ["request-source", "Request source"],
   ["improve-feed", "Improve feed"],
+] as const;
+
+const sourceLanes = [
+  ["X notes", "builder posts"],
+  ["GitHub", "repos and skills"],
+  ["Launches", "PH and HN"],
+  ["Longform", "queued context"],
 ] as const;
 
 const sortOptions: Array<[SortMode, string]> = [
@@ -61,8 +69,7 @@ const leadStorageKey = "george-builder-radar-install-unlocked";
 const pageSize = 12;
 
 function LinkedItemTitle({ title, source }: { title: string; source: string }) {
-  const href = firstUrl(title, source);
-  const label = href && title === href ? displaySourceLabel(href) : title;
+  const { href, label } = sourceTitle(title, source);
 
   if (!href) return <strong>{label}</strong>;
 
@@ -82,15 +89,6 @@ function SearchIcon() {
   );
 }
 
-function CopyIcon() {
-  return (
-    <svg aria-hidden="true" className="icon" viewBox="0 0 24 24">
-      <rect height="12" rx="2" width="12" x="8" y="8" />
-      <path d="M4 16.2V5.8C4 4.8 4.8 4 5.8 4h10.4" />
-    </svg>
-  );
-}
-
 function SendIcon() {
   return (
     <svg aria-hidden="true" className="icon" viewBox="0 0 24 24">
@@ -100,11 +98,11 @@ function SendIcon() {
   );
 }
 
-function sortFeeds(items: BuilderFeed[], sortMode: SortMode) {
+function sortFeeds(items: FeedSummary[], sortMode: SortMode) {
   if (sortMode === "signals") {
     return [...items].sort(
       (left, right) =>
-        right.signals.length - left.signals.length ||
+        right.signalCount - left.signalCount ||
         right.date.localeCompare(left.date),
     );
   }
@@ -118,42 +116,48 @@ function sortFeeds(items: BuilderFeed[], sortMode: SortMode) {
   return [...items].sort((left, right) => right.date.localeCompare(left.date));
 }
 
-async function errorMessageFor(response: Response) {
+type ErrorCopy = {
+  labels: Record<string, string>;
+  unavailable: string;
+  invalid: string;
+};
+
+const submitErrorCopy: ErrorCopy = {
+  labels: issueLabels,
+  unavailable: "Something went wrong. Try again or send the signal another way.",
+  invalid: "Please check the form and try again.",
+};
+
+const leadErrorCopy: ErrorCopy = {
+  labels: leadLabels,
+  unavailable: "Could not unlock the install command. Try again in a moment.",
+  invalid: "Please check your email and try again.",
+};
+
+async function errorMessageFor(response: Response, copy: ErrorCopy) {
   if (response.status !== 400) {
-    return "Something went wrong. Try again or send the signal another way.";
+    return copy.unavailable;
   }
 
   const body = (await response.json().catch(() => null)) as ErrorResponse | null;
   const fieldMessages = Object.entries(body?.issues || {}).flatMap(
     ([field, messages]) =>
-      (messages || []).map((message) => `${issueLabels[field] || field}: ${message}`),
+      (messages || []).map((message) => `${copy.labels[field] || field}: ${message}`),
   );
 
-  return fieldMessages.length > 0
-    ? fieldMessages.join(" ")
-    : body?.error || "Please check the form and try again.";
+  return fieldMessages.length > 0 ? fieldMessages.join(" ") : body?.error || copy.invalid;
 }
 
-async function leadErrorMessageFor(response: Response) {
-  if (response.status !== 400) {
-    return "Could not unlock the install command. Try again in a moment.";
-  }
+let searchIndexRequest: Promise<SearchIndex | null> | null = null;
 
-  const body = (await response.json().catch(() => null)) as ErrorResponse | null;
-  const fieldMessages = Object.entries(body?.issues || {}).flatMap(
-    ([field, messages]) =>
-      (messages || []).map((message) => `${leadLabels[field] || field}: ${message}`),
-  );
-
-  return fieldMessages.length > 0
-    ? fieldMessages.join(" ")
-    : body?.error || "Please check your email and try again.";
+function loadSearchIndex() {
+  searchIndexRequest ??= fetch("/search-index.json")
+    .then((response) => (response.ok ? (response.json() as Promise<SearchIndex>) : null))
+    .catch(() => null);
+  return searchIndexRequest;
 }
 
-export function BuilderRadarApp({ feeds }: Props) {
-  const latestFeed = feeds[0];
-  const [designVariant, setDesignVariant] = useState<DesignVariant>("compact");
-  const [selectedId, setSelectedId] = useState(latestFeed?.id || feeds[0]?.id);
+export function BuilderRadarApp({ latestFeed, archive }: Props) {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   const [laneFilter, setLaneFilter] = useState<LaneFilter>("latest");
@@ -166,36 +170,34 @@ export function BuilderRadarApp({ feeds }: Props) {
   const [leadUnlocked, setLeadUnlocked] = useState(false);
   const [leadError, setLeadError] = useState("");
   const [page, setPage] = useState(1);
+  const [searchIndex, setSearchIndex] = useState<SearchIndex | null>(null);
 
-  const selectedFeed =
-    feeds.find((feed) => feed.id === selectedId) || latestFeed || feeds[0];
 
   const filteredFeeds = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return feeds.filter((feed) => {
+    return archive.filter((feed) => {
       const laneMatches =
         laneFilter === "latest" ||
-        (laneFilter === "repos" && feed.repos.length > 0) ||
-        (laneFilter === "launches" && feed.launches.length > 0) ||
-        (laneFilter === "x" && feed.xNotes.length > 0);
+        (laneFilter === "repos" && feed.hasRepos) ||
+        (laneFilter === "launches" && feed.hasLaunches) ||
+        (laneFilter === "x" && feed.hasXNotes);
 
-      const haystack = [
-        feed.title,
-        feed.date,
-        feed.summary,
-        feed.signals.map((signal) => `${signal.title} ${signal.why}`).join(" "),
-        feed.xNotes.map((item) => `${item.title} ${item.description}`).join(" "),
-        feed.repos.map((item) => `${item.title} ${item.description}`).join(" "),
-        feed.launches.map((item) => `${item.title} ${item.description}`).join(" "),
-        feed.takeaways.join(" "),
-      ]
-        .join(" ")
-        .toLowerCase();
-
+      const haystack = searchIndex?.[feed.id] ?? summarySearchText(feed);
       return laneMatches && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
-  }, [feeds, laneFilter, query]);
+  }, [archive, laneFilter, query, searchIndex]);
+
+  useEffect(() => {
+    if (!query.trim() || searchIndex) return;
+    let mounted = true;
+    loadSearchIndex().then((index) => {
+      if (mounted && index) setSearchIndex(index);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [query, searchIndex]);
 
   const sortedFeeds = useMemo(
     () => sortFeeds(filteredFeeds, sortMode),
@@ -209,11 +211,6 @@ export function BuilderRadarApp({ feeds }: Props) {
 
   useEffect(() => {
     setLeadUnlocked(window.localStorage.getItem(leadStorageKey) === "true");
-
-    const design = new URLSearchParams(window.location.search).get("design");
-    if (design === "proof" || design === "editorial") {
-      setDesignVariant(design);
-    }
   }, []);
 
   useEffect(() => {
@@ -253,7 +250,7 @@ export function BuilderRadarApp({ feeds }: Props) {
 
       if (!response.ok) {
         setLeadStatus("error");
-        setLeadError(await leadErrorMessageFor(response));
+        setLeadError(await errorMessageFor(response, leadErrorCopy));
         return;
       }
 
@@ -263,7 +260,7 @@ export function BuilderRadarApp({ feeds }: Props) {
       formElement.reset();
     } catch {
       setLeadStatus("error");
-      setLeadError("Could not unlock the install command. Try again in a moment.");
+      setLeadError(leadErrorCopy.unavailable);
     }
   }
 
@@ -294,7 +291,7 @@ export function BuilderRadarApp({ feeds }: Props) {
 
       if (!response.ok) {
         setFormStatus("error");
-        setError(await errorMessageFor(response));
+        setError(await errorMessageFor(response, submitErrorCopy));
         return;
       }
 
@@ -304,15 +301,15 @@ export function BuilderRadarApp({ feeds }: Props) {
       flash("submitted");
     } catch {
       setFormStatus("error");
-      setError("Something went wrong. Try again or send the signal another way.");
+      setError(submitErrorCopy.unavailable);
     }
   }
 
-  if (!selectedFeed) {
+  if (!latestFeed) {
     return (
       <main className="shell">
         <section className="empty-state">
-          <h1>George's Builder Radar</h1>
+          <h1>George&apos;s Builder Radar</h1>
           <p>No public feeds are available yet.</p>
         </section>
       </main>
@@ -320,7 +317,7 @@ export function BuilderRadarApp({ feeds }: Props) {
   }
 
   return (
-    <main className={`shell design-${designVariant}`}>
+    <main className="shell">
       <header className="topbar">
         <a className="brand" href="#">
           <BrandMark />
@@ -343,7 +340,7 @@ export function BuilderRadarApp({ feeds }: Props) {
           <div className="board-head">
             <div>
               <div className="eyebrow">Public builder-signal feed</div>
-              <h1 id="page-title">George's Builder Radar</h1>
+              <h1 id="page-title">George&apos;s Builder Radar</h1>
               <p className="lede">
                 A dense read on agents, repos, launches, and workflows that show
                 proof. The feed comes first; the pitch stays small.
@@ -351,15 +348,15 @@ export function BuilderRadarApp({ feeds }: Props) {
             </div>
             <div className="mini-metrics" aria-label="Radar stats">
               <div className="metric">
-                <strong>{feeds.length}</strong>
+                <strong>{archive.length}</strong>
                 <span>public feeds</span>
               </div>
               <div className="metric">
-                <strong>5</strong>
+                <strong>{sourceLanes.length}</strong>
                 <span>source lanes</span>
               </div>
               <div className="metric">
-                <strong>{selectedFeed.signals.length}</strong>
+                <strong>{latestFeed.signals.length}</strong>
                 <span>top signals today</span>
               </div>
             </div>
@@ -395,7 +392,7 @@ export function BuilderRadarApp({ feeds }: Props) {
               <div className="archive-list">
                 {sortedFeeds.slice(0, 6).map((feed) => (
                   <a
-                    className={`catalog-row ${feed.id === selectedFeed.id ? "active" : ""}`}
+                    className={`catalog-row ${feed.id === latestFeed.id ? "active" : ""}`}
                     href={`/feeds/${feed.id}`}
                     key={feed.id}
                   >
@@ -412,24 +409,24 @@ export function BuilderRadarApp({ feeds }: Props) {
             <section className="feed-detail" id="signals" aria-labelledby="signals-title">
               <div className="detail-topline">
                 <div>
-                  <div className="eyebrow">{selectedFeed.date} latest feed</div>
+                  <div className="eyebrow">{latestFeed.date} latest feed</div>
                   <h2 id="signals-title">
-                    {displayFeedTitle(selectedFeed.title, selectedFeed.date)}
+                    {displayFeedTitle(latestFeed.title, latestFeed.date)}
                   </h2>
                 </div>
                 <div className="actions">
-                  <a className="btn primary" href={`/feeds/${selectedFeed.id}`}>
+                  <a className="btn primary" href={`/feeds/${latestFeed.id}`}>
                     Open feed
                   </a>
-                  <button className="btn" onClick={() => copyFeed(selectedFeed)} type="button">
+                  <button className="btn" onClick={() => copyFeed(latestFeed)} type="button">
                     Copy markdown
                   </button>
                 </div>
               </div>
 
               <div className="signals">
-                {selectedFeed.signals.slice(0, 3).map((signal, index) => (
-                  <article className="signal-row" key={`${selectedFeed.id}-${signal.title}`}>
+                {latestFeed.signals.slice(0, 3).map((signal, index) => (
+                  <article className="signal-row" key={`${latestFeed.id}-${signal.title}`}>
                     <span className="rank">{index + 1}</span>
                     <div>
                       <h3>{signal.title}</h3>
@@ -451,7 +448,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <section className="mini-panel">
                   <h3>X builder notes</h3>
                   <ul>
-                    {selectedFeed.xNotes.slice(0, 2).map((item) => (
+                    {latestFeed.xNotes.slice(0, 2).map((item) => (
                       <li key={item.title}>
                         <LinkedItemTitle title={item.title} source={item.source} />
                         {item.description && <>: {item.description}</>}
@@ -462,7 +459,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <section className="mini-panel">
                   <h3>Repo radar</h3>
                   <ul>
-                    {selectedFeed.repos.slice(0, 2).map((item) => (
+                    {latestFeed.repos.slice(0, 2).map((item) => (
                       <li key={item.title}>
                         <LinkedItemTitle title={item.title} source={item.source} />
                         {item.description && <>: {item.description}</>}
@@ -473,7 +470,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <section className="mini-panel">
                   <h3>Builder takeaways</h3>
                   <ul>
-                    {selectedFeed.takeaways.slice(0, 2).map((item) => (
+                    {latestFeed.takeaways.slice(0, 2).map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
@@ -546,22 +543,12 @@ export function BuilderRadarApp({ feeds }: Props) {
           <section className="utility-card" id="sources">
             <div className="eyebrow">Source lanes</div>
             <div className="source-map">
-              <div>
-                <strong>X notes</strong>
-                <span>builder posts</span>
-              </div>
-              <div>
-                <strong>GitHub</strong>
-                <span>repos and skills</span>
-              </div>
-              <div>
-                <strong>Launches</strong>
-                <span>PH and HN</span>
-              </div>
-              <div>
-                <strong>Longform</strong>
-                <span>queued context</span>
-              </div>
+              {sourceLanes.map(([lane, detail]) => (
+                <div key={lane}>
+                  <strong>{lane}</strong>
+                  <span>{detail}</span>
+                </div>
+              ))}
             </div>
           </section>
 
@@ -632,7 +619,7 @@ export function BuilderRadarApp({ feeds }: Props) {
                 <small>{feed.summary}</small>
               </span>
               <span className="archive-chip">{feed.status}</span>
-              <span className="heat">{feed.signals.length} signals</span>
+              <span className="heat">{feed.signalCount} signals</span>
             </a>
           ))}
         </div>
@@ -669,7 +656,7 @@ export function BuilderRadarApp({ feeds }: Props) {
           </div>
           <p>
             Send a repo, launch, post, podcast, or source request. Public submissions
-            go to the shared public queue; private notes go to George's private intake.
+            go to the shared public queue; private notes go to George&apos;s private intake.
           </p>
         </div>
         <form className="submit-form" onSubmit={handleSubmitSignal}>
@@ -724,7 +711,7 @@ export function BuilderRadarApp({ feeds }: Props) {
       </section>
 
       <footer className="footer">
-        <span>George's Builder Radar</span>
+        <span>George&apos;s Builder Radar</span>
         <span>Public builder signals, edited for agents and humans.</span>
       </footer>
 

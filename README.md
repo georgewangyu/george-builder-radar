@@ -51,10 +51,10 @@ A daily or weekly digest, delivered in chat or to your preferred channel, with:
 - complete dated-feed snapshot, official updates and source qualifications, including prose evening additions
 
 Before publishing a dated feed, run `node scripts/validate-feed.js <feed-path>`.
-Explicit paths check both section structure and accidental internal scoring or
-selection instructions. The no-argument command remains the legacy archive
-structure audit. Regression checks: `node scripts/test-feed-context.cjs` and
-`node scripts/test-feed-publication.cjs`.
+It checks section structure and accidental internal scoring or selection
+instructions. The no-argument command (`npm run validate`) runs the same checks
+on the whole archive, skipping the scoring check only for the legacy feeds in
+`config/rubric-legacy-allowlist.txt`. Regression checks: `npm run test:unit`.
 
 ## Quick Start
 
@@ -148,10 +148,15 @@ service role key must stay server-side and must not be exposed through
 Website validation:
 
 ```bash
-npm run typecheck
+npm run check   # typecheck, lint, unit tests and full-archive feed validation
 npm run build
 npm run test:ui
 ```
+
+CI (`.github/workflows/ci.yml`) runs `npm run check` steps on every push to
+`main` and on pull requests. `npm run validate` applies the internal-rubric
+check to every feed except the legacy files listed in
+`config/rubric-legacy-allowlist.txt`.
 
 Marketing funnel note: [docs/marketing-funnel.md](docs/marketing-funnel.md).
 The current lead magnet is the installable skill; email capture unlocks the

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { feeds } from "../lib/builder-feeds";
 import { displayFeedTitle } from "../lib/feed-title";
+import { feedSearchText, summarizeFeed, summarySearchText } from "../lib/feed-summary";
 
 const archivePageSize = 12;
 
@@ -210,5 +211,27 @@ test.describe("George's Builder Radar", () => {
       why:
         "useful agents need boring infrastructure before they can safely handle real workflows: authenticated local context, email checks, approval gates, receipts, and stop conditions.",
     });
+  });
+  const summaryText = feeds.map((feed) => summarySearchText(summarizeFeed(feed))).join(" ");
+  const deepTerm = feeds
+    .flatMap((feed) => feedSearchText(feed).split(/[^a-z]+/))
+    .find((word) => word.length > 6 && !summaryText.includes(word));
+  const deepMatches = feeds.filter((feed) => deepTerm && feedSearchText(feed).includes(deepTerm)).length;
+
+  test("archive search matches signal and item text once the search index loads", async ({ page }) => {
+    expect(deepTerm).toBeTruthy();
+    await page.goto("/");
+    await page.getByPlaceholder("Search memory, MCP, agents, launch patterns...").fill(deepTerm!);
+    await expect(page.locator(".archive-meta")).toContainText(`${deepMatches} matching feeds`);
+  });
+
+  test("archive search falls back to title, date and summary if the index fails", async ({ page }) => {
+    await page.route("**/search-index.json", (route) => route.fulfill({ status: 500, body: "" }));
+    await page.goto("/");
+    const search = page.getByPlaceholder("Search memory, MCP, agents, launch patterns...");
+    await search.fill(deepTerm!);
+    await expect(page.locator(".archive-meta")).toContainText("0 matching feeds");
+    await search.fill(feeds[0].date);
+    await expect(page.locator(".archive-meta")).toContainText("1 matching feeds");
   });
 });
